@@ -118,15 +118,9 @@ var ListView = class extends import_obsidian.ItemView {
             e.dataTransfer.dropEffect = "none";
           }
         } else {
-          const dragData = dragging.dataset;
-          const dragListIndex = parseInt(dragData.listIndex || "-1");
-          const listEl = itemsContainer.closest(".list-sidebar-list");
-          const currentListIndex = listEl ? parseInt(listEl.dataset.listIndex || "-1") : -1;
-          if (dragListIndex !== currentListIndex) {
-            e.preventDefault();
-            if (e.dataTransfer) {
-              e.dataTransfer.dropEffect = "none";
-            }
+          e.preventDefault();
+          if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = "move";
           }
         }
       }
@@ -139,15 +133,6 @@ var ListView = class extends import_obsidian.ItemView {
         if (!itemsContainer) {
           e.preventDefault();
           this.render();
-        } else {
-          const dragData = dragging.dataset;
-          const dragListIndex = parseInt(dragData.listIndex || "-1");
-          const listEl = itemsContainer.closest(".list-sidebar-list");
-          const currentListIndex = listEl ? parseInt(listEl.dataset.listIndex || "-1") : -1;
-          if (dragListIndex !== currentListIndex) {
-            e.preventDefault();
-            this.render();
-          }
         }
       }
     };
@@ -313,23 +298,31 @@ var ListView = class extends import_obsidian.ItemView {
     };
     itemEl.ondragend = async (e) => {
       itemEl.classList.remove("dragging");
-      const itemsContainer = itemEl.closest(".list-sidebar-items");
-      if (!itemsContainer || itemsContainer !== container) {
-        this.render();
-        return;
-      }
-      const finalIndex = Array.from(container.children).filter(
-        (el) => el.classList.contains("list-sidebar-item")
-      ).indexOf(itemEl);
       if (isValidItemDrop) {
         this.render();
         return;
       }
-      if (finalIndex === dragStartItemIndex) {
+      const itemsContainer = itemEl.closest(".list-sidebar-items");
+      if (!itemsContainer) {
         this.render();
-      } else if (finalIndex !== dragStartItemIndex && finalIndex >= 0 && finalIndex < this.lists[listIndex].items.length) {
-        const [movedItem] = this.lists[listIndex].items.splice(dragStartItemIndex, 1);
-        this.lists[listIndex].items.splice(finalIndex, 0, movedItem);
+        return;
+      }
+      const finalContainer = itemsContainer;
+      const finalListEl = finalContainer.closest(".list-sidebar-list");
+      const finalListIndex = finalListEl ? parseInt(finalListEl.dataset.listIndex || "-1") : -1;
+      const finalIndex = Array.from(finalContainer.children).filter(
+        (el) => el.classList.contains("list-sidebar-item")
+      ).indexOf(itemEl);
+      if (finalListIndex === listIndex && finalIndex === dragStartItemIndex) {
+        this.render();
+      } else if (finalListIndex >= 0 && finalListIndex < this.lists.length && finalIndex >= 0 && finalIndex <= this.lists[finalListIndex].items.length) {
+        if (finalListIndex === listIndex) {
+          const [movedItem] = this.lists[listIndex].items.splice(dragStartItemIndex, 1);
+          this.lists[listIndex].items.splice(finalIndex, 0, movedItem);
+        } else {
+          const [movedItem] = this.lists[listIndex].items.splice(dragStartItemIndex, 1);
+          this.lists[finalListIndex].items.splice(finalIndex, 0, movedItem);
+        }
         await this.saveData();
         this.render();
       } else {
@@ -342,29 +335,16 @@ var ListView = class extends import_obsidian.ItemView {
       const dragging = container.querySelector(".dragging");
       if (!dragging)
         return;
-      const draggingContainer = dragging.closest(".list-sidebar-items");
-      if (!draggingContainer || draggingContainer !== container) {
-        if (e.dataTransfer) {
-          e.dataTransfer.dropEffect = "none";
-        }
+      if (!dragging.classList.contains("list-sidebar-item"))
         return;
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "move";
       }
-      const dragData = dragging.dataset;
-      const dragListIndex = parseInt(dragData.listIndex || "-1");
-      if (dragListIndex === listIndex) {
-        if (e.dataTransfer) {
-          e.dataTransfer.dropEffect = "move";
-        }
-        const afterElement = this.getDragAfterElement(container, e.clientY, "item");
-        if (afterElement == null) {
-          container.appendChild(dragging);
-        } else {
-          container.insertBefore(dragging, afterElement);
-        }
+      const afterElement = this.getDragAfterElement(container, e.clientY, "item");
+      if (afterElement == null) {
+        container.appendChild(dragging);
       } else {
-        if (e.dataTransfer) {
-          e.dataTransfer.dropEffect = "none";
-        }
+        container.insertBefore(dragging, afterElement);
       }
     };
     itemEl.ondrop = async (e) => {
@@ -378,12 +358,20 @@ var ListView = class extends import_obsidian.ItemView {
           const toItemIndex = Array.from(container.children).filter(
             (el) => el.classList.contains("list-sidebar-item")
           ).indexOf(itemEl);
-          if (fromListIndex === listIndex && fromItemIndex !== toItemIndex && !isNaN(fromItemIndex) && !isNaN(toItemIndex) && toItemIndex >= 0 && toItemIndex < this.lists[listIndex].items.length) {
-            isValidItemDrop = true;
-            const [movedItem] = this.lists[listIndex].items.splice(fromItemIndex, 1);
-            this.lists[listIndex].items.splice(toItemIndex, 0, movedItem);
-            await this.saveData();
-            this.render();
+          if (!isNaN(fromListIndex) && !isNaN(fromItemIndex) && !isNaN(toItemIndex) && toItemIndex >= 0 && fromListIndex >= 0 && fromListIndex < this.lists.length && fromItemIndex >= 0 && fromItemIndex < this.lists[fromListIndex].items.length && toItemIndex < this.lists[listIndex].items.length) {
+            if (fromListIndex === listIndex && fromItemIndex !== toItemIndex) {
+              isValidItemDrop = true;
+              const [movedItem] = this.lists[listIndex].items.splice(fromItemIndex, 1);
+              this.lists[listIndex].items.splice(toItemIndex, 0, movedItem);
+              await this.saveData();
+              this.render();
+            } else if (fromListIndex !== listIndex) {
+              isValidItemDrop = true;
+              const [movedItem] = this.lists[fromListIndex].items.splice(fromItemIndex, 1);
+              this.lists[listIndex].items.splice(toItemIndex, 0, movedItem);
+              await this.saveData();
+              this.render();
+            }
           }
         } catch (error) {
           this.render();
