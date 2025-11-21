@@ -249,19 +249,20 @@
 	background-color: var(--interactive-accent-hover);
 }
 
-/* 输入框样式 */
-.list-sidebar-input {
+/* 内联输入框样式 */
+.list-sidebar-inline-input {
 	width: 100%;
-	padding: 10px;
-	font-size: 14px;
-	border: 1px solid var(--background-modifier-border);
+	padding: 6px 8px;
+	font-size: 13px;
+	border: 1px solid var(--interactive-accent);
 	border-radius: 4px;
 	background-color: var(--background-primary);
 	color: var(--text-normal);
 	outline: none;
+	text-align: center;
 }
 
-.list-sidebar-input:focus {
+.list-sidebar-inline-input:focus {
 	border-color: var(--interactive-accent);
 	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }

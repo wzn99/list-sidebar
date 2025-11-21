@@ -85,18 +85,8 @@ var ListView = class extends import_obsidian.ItemView {
       attr: { "aria-label": "Add List" }
     });
     addListBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-    addListBtn.onclick = async () => {
-      const name = await this.promptForInput("", "");
-      if (name && name.trim()) {
-        const newList = {
-          name: name.trim(),
-          expanded: true,
-          items: []
-        };
-        this.lists.push(newList);
-        await this.saveData();
-        this.render();
-      }
+    addListBtn.onclick = () => {
+      this.showAddListInput(listsContainer);
     };
   }
   renderList(container, list, listIndex) {
@@ -139,16 +129,8 @@ var ListView = class extends import_obsidian.ItemView {
         attr: { "aria-label": "Add Item" }
       });
       addItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-      addItemBtn.onclick = async () => {
-        const content = await this.promptForInput("", "");
-        if (content && content.trim()) {
-          const newItem = {
-            content: content.trim()
-          };
-          list.items.push(newItem);
-          await this.saveData();
-          this.render();
-        }
+      addItemBtn.onclick = () => {
+        this.showAddItemInput(itemsContainer, listIndex);
       };
     }
   }
@@ -164,13 +146,8 @@ var ListView = class extends import_obsidian.ItemView {
       attr: { "aria-label": "Edit Item" }
     });
     editItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-    editItemBtn.onclick = async () => {
-      const newContent = await this.promptForInput("", item.content);
-      if (newContent !== null && newContent.trim()) {
-        this.lists[listIndex].items[itemIndex].content = newContent.trim();
-        await this.saveData();
-        this.render();
-      }
+    editItemBtn.onclick = () => {
+      this.showEditItemInput(itemEl, contentEl, listIndex, itemIndex, item.content);
     };
     const deleteItemBtn = btnContainer.createEl("button", {
       cls: "list-sidebar-delete-item-btn",
@@ -182,14 +159,6 @@ var ListView = class extends import_obsidian.ItemView {
       await this.saveData();
       this.render();
     };
-  }
-  async promptForInput(prompt, defaultValue = "") {
-    return new Promise((resolve) => {
-      const modal = new InputModal(this.app, prompt, defaultValue, (value) => {
-        resolve(value);
-      });
-      modal.open();
-    });
   }
   async refresh() {
     await this.loadData();
@@ -203,45 +172,109 @@ var ListView = class extends import_obsidian.ItemView {
       modal.open();
     });
   }
-};
-var InputModal = class extends import_obsidian.Modal {
-  constructor(app, prompt, defaultValue, onSubmit) {
-    super(app);
-    this.prompt = prompt;
-    this.defaultValue = defaultValue;
-    this.onSubmit = onSubmit;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    this.inputEl = contentEl.createEl("input", {
+  showAddListInput(container) {
+    const inputEl = container.createEl("input", {
       type: "text",
-      cls: "list-sidebar-input"
+      cls: "list-sidebar-inline-input"
     });
-    if (this.defaultValue) {
-      this.inputEl.value = this.defaultValue;
-    }
-    setTimeout(() => {
-      this.inputEl.focus();
-      if (this.defaultValue) {
-        this.inputEl.select();
-      }
-    }, 0);
-    this.inputEl.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        this.onSubmit(this.inputEl.value);
-        this.close();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        this.onSubmit(null);
-        this.close();
+    inputEl.placeholder = "List name";
+    const finishInput = async () => {
+      const value = inputEl.value.trim();
+      if (value) {
+        const newList = {
+          name: value,
+          expanded: true,
+          items: []
+        };
+        this.lists.push(newList);
+        await this.saveData();
+        this.render();
+      } else {
+        inputEl.remove();
       }
     };
+    inputEl.focus();
+    inputEl.onkeydown = async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        await finishInput();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        inputEl.remove();
+      }
+    };
+    inputEl.onblur = async () => {
+      await finishInput();
+    };
   }
-  onClose() {
-    const { contentEl } = this;
+  showAddItemInput(container, listIndex) {
+    const inputEl = container.createEl("input", {
+      type: "text",
+      cls: "list-sidebar-inline-input"
+    });
+    inputEl.placeholder = "Item content";
+    const finishInput = async () => {
+      const value = inputEl.value.trim();
+      if (value) {
+        const newItem = {
+          content: value
+        };
+        this.lists[listIndex].items.push(newItem);
+        await this.saveData();
+        this.render();
+      } else {
+        inputEl.remove();
+      }
+    };
+    inputEl.focus();
+    inputEl.onkeydown = async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        await finishInput();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        inputEl.remove();
+      }
+    };
+    inputEl.onblur = async () => {
+      await finishInput();
+    };
+  }
+  showEditItemInput(itemEl, contentEl, listIndex, itemIndex, currentValue) {
     contentEl.empty();
+    const inputEl = contentEl.createEl("input", {
+      type: "text",
+      cls: "list-sidebar-inline-input"
+    });
+    inputEl.value = currentValue;
+    const finishInput = async () => {
+      const value = inputEl.value.trim();
+      if (value && value !== currentValue) {
+        this.lists[listIndex].items[itemIndex].content = value;
+        await this.saveData();
+        this.render();
+      } else if (!value) {
+        this.lists[listIndex].items.splice(itemIndex, 1);
+        await this.saveData();
+        this.render();
+      } else {
+        this.render();
+      }
+    };
+    inputEl.focus();
+    inputEl.select();
+    inputEl.onkeydown = async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        await finishInput();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        this.render();
+      }
+    };
+    inputEl.onblur = async () => {
+      await finishInput();
+    };
   }
 };
 var ConfirmModal = class extends import_obsidian.Modal {
@@ -325,7 +358,7 @@ var ListSidebarPlugin = class extends import_obsidian2.Plugin {
     const { workspace } = this.app;
     let leaf = workspace.getLeavesOfType(VIEW_TYPE_LIST_SIDEBAR)[0];
     if (!leaf) {
-      const newLeaf = workspace.getRightLeaf(false);
+      const newLeaf = workspace.getLeftLeaf(false);
       if (newLeaf) {
         await newLeaf.setViewState({ type: VIEW_TYPE_LIST_SIDEBAR, active: true });
         leaf = newLeaf;

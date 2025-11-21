@@ -75,18 +75,8 @@ export class ListView extends ItemView {
 			attr: { "aria-label": "Add List" }
 		});
 		addListBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-		addListBtn.onclick = async () => {
-			const name = await this.promptForInput("", "");
-			if (name && name.trim()) {
-				const newList: List = {
-					name: name.trim(),
-					expanded: true,
-					items: []
-				};
-				this.lists.push(newList);
-				await this.saveData();
-				this.render();
-			}
+		addListBtn.onclick = () => {
+			this.showAddListInput(listsContainer);
 		};
 	}
 
@@ -145,16 +135,8 @@ export class ListView extends ItemView {
 				attr: { "aria-label": "Add Item" }
 			});
 		addItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-			addItemBtn.onclick = async () => {
-				const content = await this.promptForInput("", "");
-				if (content && content.trim()) {
-					const newItem: ListItem = {
-						content: content.trim()
-					};
-					list.items.push(newItem);
-					await this.saveData();
-					this.render();
-				}
+			addItemBtn.onclick = () => {
+				this.showAddItemInput(itemsContainer, listIndex);
 			};
 		}
 	}
@@ -177,13 +159,8 @@ export class ListView extends ItemView {
 			attr: { "aria-label": "Edit Item" }
 		});
 		editItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-		editItemBtn.onclick = async () => {
-			const newContent = await this.promptForInput("", item.content);
-			if (newContent !== null && newContent.trim()) {
-				this.lists[listIndex].items[itemIndex].content = newContent.trim();
-				await this.saveData();
-				this.render();
-			}
+		editItemBtn.onclick = () => {
+			this.showEditItemInput(itemEl, contentEl, listIndex, itemIndex, item.content);
 		};
 
 		// 删除条目按钮
@@ -199,15 +176,6 @@ export class ListView extends ItemView {
 		};
 	}
 
-	async promptForInput(prompt: string, defaultValue: string = ""): Promise<string | null> {
-		return new Promise((resolve) => {
-			const modal = new InputModal(this.app, prompt, defaultValue, (value) => {
-				resolve(value);
-			});
-			modal.open();
-		});
-	}
-
 	async refresh() {
 		await this.loadData();
 		this.render();
@@ -221,55 +189,123 @@ export class ListView extends ItemView {
 			modal.open();
 		});
 	}
-}
 
-class InputModal extends Modal {
-	private inputEl!: HTMLInputElement;
-	private onSubmit: (value: string | null) => void;
-
-	constructor(app: App, private prompt: string, private defaultValue: string, onSubmit: (value: string | null) => void) {
-		super(app);
-		this.onSubmit = onSubmit;
-	}
-
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.empty();
-
-		// 只显示输入框，不显示提示信息
-		this.inputEl = contentEl.createEl("input", {
+	showAddListInput(container: HTMLElement) {
+		const inputEl = container.createEl("input", {
 			type: "text",
-			cls: "list-sidebar-input"
+			cls: "list-sidebar-inline-input"
 		});
+		inputEl.placeholder = "List name";
 		
-		if (this.defaultValue) {
-			this.inputEl.value = this.defaultValue;
-		}
-
-		// 自动focus并选中，可以直接打字
-		setTimeout(() => {
-			this.inputEl.focus();
-			if (this.defaultValue) {
-				this.inputEl.select();
+		const finishInput = async () => {
+			const value = inputEl.value.trim();
+			if (value) {
+				const newList: List = {
+					name: value,
+					expanded: true,
+					items: []
+				};
+				this.lists.push(newList);
+				await this.saveData();
+				this.render();
+			} else {
+				inputEl.remove();
 			}
-		}, 0);
+		};
 
-		this.inputEl.onkeydown = (e) => {
+		inputEl.focus();
+		inputEl.onkeydown = async (e) => {
 			if (e.key === "Enter") {
 				e.preventDefault();
-				this.onSubmit(this.inputEl.value);
-				this.close();
+				await finishInput();
 			} else if (e.key === "Escape") {
 				e.preventDefault();
-				this.onSubmit(null);
-				this.close();
+				inputEl.remove();
 			}
+		};
+		
+		inputEl.onblur = async () => {
+			await finishInput();
 		};
 	}
 
-	onClose() {
-		const { contentEl } = this;
+	showAddItemInput(container: HTMLElement, listIndex: number) {
+		const inputEl = container.createEl("input", {
+			type: "text",
+			cls: "list-sidebar-inline-input"
+		});
+		inputEl.placeholder = "Item content";
+		
+		const finishInput = async () => {
+			const value = inputEl.value.trim();
+			if (value) {
+				const newItem: ListItem = {
+					content: value
+				};
+				this.lists[listIndex].items.push(newItem);
+				await this.saveData();
+				this.render();
+			} else {
+				inputEl.remove();
+			}
+		};
+
+		inputEl.focus();
+		inputEl.onkeydown = async (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				await finishInput();
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				inputEl.remove();
+			}
+		};
+		
+		inputEl.onblur = async () => {
+			await finishInput();
+		};
+	}
+
+	showEditItemInput(itemEl: HTMLElement, contentEl: HTMLElement, listIndex: number, itemIndex: number, currentValue: string) {
 		contentEl.empty();
+		const inputEl = contentEl.createEl("input", {
+			type: "text",
+			cls: "list-sidebar-inline-input"
+		});
+		inputEl.value = currentValue;
+		
+		const finishInput = async () => {
+			const value = inputEl.value.trim();
+			if (value && value !== currentValue) {
+				this.lists[listIndex].items[itemIndex].content = value;
+				await this.saveData();
+				this.render();
+			} else if (!value) {
+				// 如果输入为空，删除条目
+				this.lists[listIndex].items.splice(itemIndex, 1);
+				await this.saveData();
+				this.render();
+			} else {
+				// 没有变化，恢复显示
+				this.render();
+			}
+		};
+
+		inputEl.focus();
+		inputEl.select();
+		inputEl.onkeydown = async (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				await finishInput();
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				this.render();
+			}
+		};
+		
+		inputEl.onblur = async () => {
+			await finishInput();
+		};
 	}
 }
 

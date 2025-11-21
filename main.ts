@@ -68,7 +68,7 @@ export default class ListSidebarPlugin extends Plugin {
 		let leaf = workspace.getLeavesOfType(VIEW_TYPE_LIST_SIDEBAR)[0];
 
 		if (!leaf) {
-			const newLeaf = workspace.getRightLeaf(false);
+			const newLeaf = workspace.getLeftLeaf(false);
 			if (newLeaf) {
 				await newLeaf.setViewState({ type: VIEW_TYPE_LIST_SIDEBAR, active: true });
 				leaf = newLeaf;
