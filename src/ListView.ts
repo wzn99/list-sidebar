@@ -107,16 +107,24 @@ export class ListView extends ItemView {
 		listEl.dataset.listIndex = listIndex.toString();
 		
 		// 拖拽处理
+		let dragStartIndex = listIndex;
 		listEl.ondragstart = (e) => {
 			if (e.dataTransfer) {
 				e.dataTransfer.effectAllowed = "move";
 				e.dataTransfer.setData("text/plain", listIndex.toString());
 			}
 			listEl.classList.add("dragging");
+			dragStartIndex = listIndex;
 		};
 		
-		listEl.ondragend = () => {
+		listEl.ondragend = async (e) => {
 			listEl.classList.remove("dragging");
+			// 检查最终位置是否改变
+			const finalIndex = Array.from(container.children).indexOf(listEl);
+			// 如果位置没变，需要回弹动画
+			if (finalIndex === dragStartIndex) {
+				this.render();
+			}
 		};
 		
 		listEl.ondragover = (e) => {
@@ -144,6 +152,7 @@ export class ListView extends ItemView {
 					const [movedList] = this.lists.splice(fromIndex, 1);
 					this.lists.splice(toIndex, 0, movedList);
 					await this.saveData();
+					// 位置改变了，直接更新，不需要回弹动画
 					this.render();
 				}
 			}
@@ -230,6 +239,7 @@ export class ListView extends ItemView {
 		}
 		
 		// 拖拽处理
+		let dragStartItemIndex = itemIndex;
 		itemEl.ondragstart = (e) => {
 			e.stopPropagation();
 			if (e.dataTransfer) {
@@ -237,12 +247,19 @@ export class ListView extends ItemView {
 				e.dataTransfer.setData("text/plain", JSON.stringify({ listIndex, itemIndex }));
 			}
 			itemEl.classList.add("dragging");
+			dragStartItemIndex = itemIndex;
 		};
 		
-		itemEl.ondragend = (e) => {
+		itemEl.ondragend = async (e) => {
 			itemEl.classList.remove("dragging");
-			// 移除所有拖拽占位符
-			container.querySelectorAll(".drag-placeholder").forEach(el => el.remove());
+			// 检查最终位置是否改变
+			const finalIndex = Array.from(container.children).filter(
+				el => el.classList.contains("list-sidebar-item")
+			).indexOf(itemEl);
+			// 如果位置没变，需要回弹动画
+			if (finalIndex === dragStartItemIndex) {
+				this.render();
+			}
 			// 如果拖到非法区域，回弹到原位置
 			if (e.dataTransfer && e.dataTransfer.dropEffect === "none") {
 				this.render();
@@ -265,18 +282,7 @@ export class ListView extends ItemView {
 			// 只允许在同一列表内拖动
 			if (dragListIndex === listIndex) {
 				const afterElement = this.getDragAfterElement(container, e.clientY, "item");
-				// 移除旧的占位符
-				container.querySelectorAll(".drag-placeholder").forEach(el => el.remove());
-				
-				// 创建占位符显示插入位置
-				const placeholder = container.createDiv("drag-placeholder");
-				if (afterElement == null) {
-					container.appendChild(placeholder);
-				} else {
-					container.insertBefore(placeholder, afterElement);
-				}
-				
-				// 移动拖拽元素
+				// 实时移动其他条目（类似list的做法）
 				if (afterElement == null) {
 					container.appendChild(dragging);
 				} else {
@@ -290,19 +296,9 @@ export class ListView extends ItemView {
 			}
 		};
 		
-		itemEl.ondragleave = (e) => {
-			// 如果离开的是条目本身，不移除占位符
-			const relatedTarget = e.relatedTarget as HTMLElement;
-			if (!relatedTarget || !container.contains(relatedTarget)) {
-				container.querySelectorAll(".drag-placeholder").forEach(el => el.remove());
-			}
-		};
-		
 		itemEl.ondrop = async (e) => {
 			e.preventDefault();
 			e.stopPropagation();
-			// 移除占位符
-			container.querySelectorAll(".drag-placeholder").forEach(el => el.remove());
 			
 			if (e.dataTransfer) {
 				try {
@@ -319,9 +315,7 @@ export class ListView extends ItemView {
 						const [movedItem] = this.lists[listIndex].items.splice(fromItemIndex, 1);
 						this.lists[listIndex].items.splice(toItemIndex, 0, movedItem);
 						await this.saveData();
-						this.render();
-					} else {
-						// 非法放置，回弹
+						// 位置改变了，直接更新，不需要回弹动画
 						this.render();
 					}
 				} catch (error) {
