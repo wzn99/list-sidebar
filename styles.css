@@ -86,6 +86,12 @@
 	font-size: 14px;
 	color: var(--text-normal);
 	text-align: center;
+	cursor: pointer;
+	transition: opacity 0.2s;
+}
+
+.list-sidebar-list-name:hover {
+	opacity: 0.7;
 }
 
 .list-sidebar-delete-btn {
@@ -157,7 +163,15 @@
 	text-align: center;
 }
 
-.list-sidebar-edit-item-btn,
+.list-sidebar-item-content span {
+	cursor: pointer;
+	transition: opacity 0.2s;
+}
+
+.list-sidebar-item-content span:hover {
+	opacity: 0.7;
+}
+
 .list-sidebar-delete-item-btn {
 	background: none;
 	border: none;
@@ -172,17 +186,11 @@
 	opacity: 0.6;
 }
 
-.list-sidebar-edit-item-btn:hover {
-	opacity: 1;
-	color: var(--text-normal);
-}
-
 .list-sidebar-delete-item-btn:hover {
 	opacity: 1;
 	color: var(--text-error);
 }
 
-.list-sidebar-edit-item-btn svg,
 .list-sidebar-delete-item-btn svg {
 	width: 14px;
 	height: 14px;

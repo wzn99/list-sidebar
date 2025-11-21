@@ -100,11 +100,16 @@ export class ListView extends ItemView {
 			this.render();
 		};
 
-		// 列表名称（居中）
+		// 列表名称（居中，可点击编辑）
 		const nameEl = headerEl.createEl("span", {
 			text: list.name,
 			cls: "list-sidebar-list-name"
 		});
+		nameEl.style.cursor = "pointer";
+		nameEl.onclick = (e) => {
+			e.stopPropagation();
+			this.showEditListNameInput(nameEl, listIndex, list.name);
+		};
 
 		// 删除列表按钮
 		const deleteListBtn = headerEl.createEl("button", {
@@ -144,25 +149,20 @@ export class ListView extends ItemView {
 	renderItem(container: HTMLElement, item: ListItem, listIndex: number, itemIndex: number) {
 		const itemEl = container.createDiv("list-sidebar-item");
 		
-		// 条目内容（纯文本，居中）
+		// 条目内容（纯文本，居中，可点击编辑）
 		const contentEl = itemEl.createDiv("list-sidebar-item-content");
-		contentEl.createEl("span", {
+		const contentSpan = contentEl.createEl("span", {
 			text: item.content
 		});
+		contentSpan.style.cursor = "pointer";
+		contentSpan.onclick = (e) => {
+			e.stopPropagation();
+			this.showEditItemInput(itemEl, contentEl, listIndex, itemIndex, item.content);
+		};
 
 		// 按钮容器（悬停时显示）
 		const btnContainer = itemEl.createDiv("list-sidebar-item-buttons");
 		
-		// 编辑条目按钮
-		const editItemBtn = btnContainer.createEl("button", {
-			cls: "list-sidebar-edit-item-btn",
-			attr: { "aria-label": "Edit Item" }
-		});
-		editItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-		editItemBtn.onclick = () => {
-			this.showEditItemInput(itemEl, contentEl, listIndex, itemIndex, item.content);
-		};
-
 		// 删除条目按钮
 		const deleteItemBtn = btnContainer.createEl("button", {
 			cls: "list-sidebar-delete-item-btn",
@@ -258,6 +258,47 @@ export class ListView extends ItemView {
 			} else if (e.key === "Escape") {
 				e.preventDefault();
 				inputEl.remove();
+			}
+		};
+		
+		inputEl.onblur = async () => {
+			await finishInput();
+		};
+	}
+
+	showEditListNameInput(nameEl: HTMLElement, listIndex: number, currentValue: string) {
+		const originalText = nameEl.textContent;
+		nameEl.empty();
+		const inputEl = nameEl.createEl("input", {
+			type: "text",
+			cls: "list-sidebar-inline-input"
+		});
+		inputEl.value = currentValue;
+		
+		const finishInput = async () => {
+			const value = inputEl.value.trim();
+			if (value && value !== currentValue) {
+				this.lists[listIndex].name = value;
+				await this.saveData();
+				this.render();
+			} else if (!value) {
+				// 如果输入为空，恢复原值
+				this.render();
+			} else {
+				// 没有变化，恢复显示
+				this.render();
+			}
+		};
+
+		inputEl.focus();
+		inputEl.select();
+		inputEl.onkeydown = async (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				await finishInput();
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				this.render();
 			}
 		};
 		

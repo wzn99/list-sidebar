@@ -106,6 +106,11 @@ var ListView = class extends import_obsidian.ItemView {
       text: list.name,
       cls: "list-sidebar-list-name"
     });
+    nameEl.style.cursor = "pointer";
+    nameEl.onclick = (e) => {
+      e.stopPropagation();
+      this.showEditListNameInput(nameEl, listIndex, list.name);
+    };
     const deleteListBtn = headerEl.createEl("button", {
       cls: "list-sidebar-delete-btn",
       attr: { "aria-label": "Delete List" }
@@ -137,18 +142,15 @@ var ListView = class extends import_obsidian.ItemView {
   renderItem(container, item, listIndex, itemIndex) {
     const itemEl = container.createDiv("list-sidebar-item");
     const contentEl = itemEl.createDiv("list-sidebar-item-content");
-    contentEl.createEl("span", {
+    const contentSpan = contentEl.createEl("span", {
       text: item.content
     });
-    const btnContainer = itemEl.createDiv("list-sidebar-item-buttons");
-    const editItemBtn = btnContainer.createEl("button", {
-      cls: "list-sidebar-edit-item-btn",
-      attr: { "aria-label": "Edit Item" }
-    });
-    editItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-    editItemBtn.onclick = () => {
+    contentSpan.style.cursor = "pointer";
+    contentSpan.onclick = (e) => {
+      e.stopPropagation();
       this.showEditItemInput(itemEl, contentEl, listIndex, itemIndex, item.content);
     };
+    const btnContainer = itemEl.createDiv("list-sidebar-item-buttons");
     const deleteItemBtn = btnContainer.createEl("button", {
       cls: "list-sidebar-delete-item-btn",
       attr: { "aria-label": "Delete Item" }
@@ -234,6 +236,41 @@ var ListView = class extends import_obsidian.ItemView {
       } else if (e.key === "Escape") {
         e.preventDefault();
         inputEl.remove();
+      }
+    };
+    inputEl.onblur = async () => {
+      await finishInput();
+    };
+  }
+  showEditListNameInput(nameEl, listIndex, currentValue) {
+    const originalText = nameEl.textContent;
+    nameEl.empty();
+    const inputEl = nameEl.createEl("input", {
+      type: "text",
+      cls: "list-sidebar-inline-input"
+    });
+    inputEl.value = currentValue;
+    const finishInput = async () => {
+      const value = inputEl.value.trim();
+      if (value && value !== currentValue) {
+        this.lists[listIndex].name = value;
+        await this.saveData();
+        this.render();
+      } else if (!value) {
+        this.render();
+      } else {
+        this.render();
+      }
+    };
+    inputEl.focus();
+    inputEl.select();
+    inputEl.onkeydown = async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        await finishInput();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        this.render();
       }
     };
     inputEl.onblur = async () => {
