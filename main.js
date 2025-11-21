@@ -126,6 +126,17 @@ var ListView = class extends import_obsidian.ItemView {
           if (e.dataTransfer) {
             e.dataTransfer.dropEffect = "none";
           }
+        } else {
+          const dragData = dragging.dataset;
+          const dragListIndex = parseInt(dragData.listIndex || "-1");
+          const listEl = itemsContainer.closest(".list-sidebar-list");
+          const currentListIndex = listEl ? parseInt(listEl.dataset.listIndex || "-1") : -1;
+          if (dragListIndex !== currentListIndex) {
+            e.preventDefault();
+            if (e.dataTransfer) {
+              e.dataTransfer.dropEffect = "none";
+            }
+          }
         }
       }
     };
@@ -137,6 +148,15 @@ var ListView = class extends import_obsidian.ItemView {
         if (!itemsContainer) {
           e.preventDefault();
           this.render();
+        } else {
+          const dragData = dragging.dataset;
+          const dragListIndex = parseInt(dragData.listIndex || "-1");
+          const listEl = itemsContainer.closest(".list-sidebar-list");
+          const currentListIndex = listEl ? parseInt(listEl.dataset.listIndex || "-1") : -1;
+          if (dragListIndex !== currentListIndex) {
+            e.preventDefault();
+            this.render();
+          }
         }
       }
     };
@@ -298,6 +318,11 @@ var ListView = class extends import_obsidian.ItemView {
     };
     itemEl.ondragend = async (e) => {
       itemEl.classList.remove("dragging");
+      const itemsContainer = itemEl.closest(".list-sidebar-items");
+      if (!itemsContainer || itemsContainer !== container) {
+        this.render();
+        return;
+      }
       if (e.dataTransfer && e.dataTransfer.dropEffect === "none") {
         this.render();
         return;
@@ -315,6 +340,13 @@ var ListView = class extends import_obsidian.ItemView {
       const dragging = container.querySelector(".dragging");
       if (!dragging)
         return;
+      const draggingContainer = dragging.closest(".list-sidebar-items");
+      if (!draggingContainer || draggingContainer !== container) {
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = "none";
+        }
+        return;
+      }
       const dragData = dragging.dataset;
       const dragListIndex = parseInt(dragData.listIndex || "-1");
       if (dragListIndex === listIndex) {

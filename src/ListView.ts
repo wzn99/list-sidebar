@@ -124,6 +124,18 @@ export class ListView extends ItemView {
 					if (e.dataTransfer) {
 						e.dataTransfer.dropEffect = "none";
 					}
+				} else {
+					// 确保在正确的列表容器内
+					const dragData = (dragging as HTMLElement).dataset;
+					const dragListIndex = parseInt(dragData.listIndex || "-1");
+					const listEl = itemsContainer.closest(".list-sidebar-list") as HTMLElement;
+					const currentListIndex = listEl ? parseInt(listEl.dataset.listIndex || "-1") : -1;
+					if (dragListIndex !== currentListIndex) {
+						e.preventDefault();
+						if (e.dataTransfer) {
+							e.dataTransfer.dropEffect = "none";
+						}
+					}
 				}
 			}
 		};
@@ -138,6 +150,17 @@ export class ListView extends ItemView {
 					e.preventDefault();
 					// 拖到非法区域，回弹
 					this.render();
+				} else {
+					// 确保在正确的列表容器内
+					const dragData = (dragging as HTMLElement).dataset;
+					const dragListIndex = parseInt(dragData.listIndex || "-1");
+					const listEl = itemsContainer.closest(".list-sidebar-list") as HTMLElement;
+					const currentListIndex = listEl ? parseInt(listEl.dataset.listIndex || "-1") : -1;
+					if (dragListIndex !== currentListIndex) {
+						e.preventDefault();
+						// 拖到错误的列表，回弹
+						this.render();
+					}
 				}
 			}
 		};
@@ -339,6 +362,13 @@ export class ListView extends ItemView {
 		
 		itemEl.ondragend = async (e) => {
 			itemEl.classList.remove("dragging");
+			// 检查条目是否还在正确的容器内
+			const itemsContainer = itemEl.closest(".list-sidebar-items");
+			if (!itemsContainer || itemsContainer !== container) {
+				// 条目不在正确的容器内，回弹
+				this.render();
+				return;
+			}
 			// 如果拖到非法区域，回弹到原位置
 			if (e.dataTransfer && e.dataTransfer.dropEffect === "none") {
 				this.render();
@@ -360,6 +390,15 @@ export class ListView extends ItemView {
 			// 检查是否在同一列表内
 			const dragging = container.querySelector(".dragging") as HTMLElement;
 			if (!dragging) return;
+			
+			// 确保dragging元素还在正确的容器内
+			const draggingContainer = dragging.closest(".list-sidebar-items");
+			if (!draggingContainer || draggingContainer !== container) {
+				if (e.dataTransfer) {
+					e.dataTransfer.dropEffect = "none";
+				}
+				return;
+			}
 			
 			const dragData = dragging.dataset;
 			const dragListIndex = parseInt(dragData.listIndex || "-1");
