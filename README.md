@@ -1,76 +1,87 @@
 # Obsidian List Sidebar Plugin
 
-一个Obsidian插件，在侧边栏显示可折叠的列表，支持笔记链接和纯文本条目，方便快速访问常用内容。
+An Obsidian plugin that displays collapsible lists in the sidebar, supporting note links and plain text items for quick access to frequently used content.
 
-## 功能特性
+## Features
 
-- 📋 多个列表支持，每个列表可独立折叠/展开
-- 🔗 支持笔记链接（`[[note]]`格式），点击即可跳转
-- 📝 支持纯文本条目
-- ➕ 直接在侧边栏进行增、删、查操作
-- 💾 数据保存为Markdown格式，可自定义文件路径
-- ⚙️ 设置面板配置数据文件保存位置
+- 📋 **Multiple Lists**: Create and manage multiple independent lists, each can be collapsed/expanded
+- 🔗 **Note Links**: Support note links in `[[note]]` format - click to navigate
+- 📝 **Plain Text Items**: Add plain text entries to your lists
+- ✏️ **Multi-line Editing**: Edit list names and items with multi-line textarea support
+- 🖱️ **Drag & Drop**: 
+  - Drag lists to reorder them
+  - Drag items within a list to reorder
+  - Drag items between different lists
+- ➕ **Quick Actions**: Add, edit, and delete lists and items directly in the sidebar
+- 💾 **Markdown Storage**: Data saved as Markdown format with customizable file path
+- ⚙️ **Customizable Settings**: Configure data file path, dividers, and background colors
 
-## 安装方法
+## Installation
 
-### 从GitHub安装（推荐）
+### From GitHub (Recommended)
 
-1. 打开Obsidian设置
-2. 进入"第三方插件" → "浏览"
-3. 搜索"List Sidebar"或使用以下方式：
-   - 点击"从GitHub安装"
-   - 输入仓库地址：`你的GitHub用户名/obsidian_list_sidebar`
-   - 点击安装
+1. Open Obsidian Settings
+2. Go to "Community plugins" → "Browse"
+3. Search for "List Sidebar" or:
+   - Click "Install from GitHub"
+   - Enter repository: `wzn99/obsidian_list_sidebar`
+   - Click Install
 
-### 手动安装
+### Manual Installation
 
-1. 下载最新版本的 `main.js`、`manifest.json` 和 `styles.css`
-2. 将文件放入你的Obsidian库的 `.obsidian/plugins/obsidian-list-sidebar/` 目录
-3. 重新加载Obsidian或重启应用
+1. Download the latest release files: `main.js`, `manifest.json`, and `styles.css`
+2. Place them in your vault's `.obsidian/plugins/obsidian-list-sidebar/` directory
+3. Reload Obsidian or restart the application
 
-## 使用方法
+## Usage
 
-1. 安装插件后，在Obsidian左侧Ribbon栏会显示列表图标
-2. 点击图标打开列表侧边栏
-3. 使用"+"按钮添加新列表
-4. 在列表中使用"+"按钮添加条目
-5. 支持输入笔记链接格式：`[[笔记名称]]`
-6. 点击列表名称旁的箭头可以折叠/展开列表
-7. 点击🗑️图标删除列表或条目
+1. After installation, a list icon will appear in the left ribbon bar
+2. Click the icon to open the List Sidebar
+3. **Add a new list**: Click the "+" button at the bottom
+4. **Add items**: Click the "+" button inside a list
+5. **Edit list/item**: Double-click the list name or item content
+6. **Toggle expand/collapse**: Click anywhere on the list header (not just the arrow)
+7. **Delete**: Click the 🗑️ icon to delete lists or items
+8. **Drag & Drop**: 
+   - Drag list headers to reorder lists
+   - Drag items to reorder within a list or move between lists
+9. **Note Links**: Enter `[[note name]]` format to create clickable note links
 
-## 设置
+## Settings
 
-在Obsidian设置 → 第三方插件 → List Sidebar中，可以配置：
-- **数据文件路径**：设置保存列表数据的Markdown文件路径（相对于库根目录）
+Configure in Obsidian Settings → Community plugins → List Sidebar:
 
-## 数据格式
+- **Data File Path**: Set the Markdown file path to save list data (relative to vault root)
+- **Show Dividers**: Toggle thin horizontal lines between items
+- **Alternate Background**: Use subtle alternating background colors for items
 
-列表数据保存在Markdown文件中，格式如下：
+## Data Format
+
+List data is saved in Markdown format:
 
 ```markdown
-## 列表名称 <!-- expanded:true -->
+## List Name <!-- expanded:true -->
 
-- [[笔记1]]
-- 纯文本条目
-- [[笔记2]]
+- [[Note 1]]
+- Plain text item
+- [[Note 2]]
 ```
 
-## 开发
+## Development
 
-如果你想参与开发或修改插件：
+To contribute or modify the plugin:
 
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# 开发模式（自动监听文件变化）
+# Development mode (auto-watch for changes)
 npm run dev
 
-# 构建生产版本
+# Build for production
 npm run build
 ```
 
-## 许可证
+## License
 
 MIT
-
