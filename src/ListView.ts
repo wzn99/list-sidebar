@@ -82,6 +82,51 @@ export class ListView extends ItemView {
 
 	renderList(container: HTMLElement, list: List, listIndex: number) {
 		const listEl = container.createDiv("list-sidebar-list");
+		listEl.draggable = true;
+		listEl.dataset.listIndex = listIndex.toString();
+		
+		// 拖拽处理
+		listEl.ondragstart = (e) => {
+			if (e.dataTransfer) {
+				e.dataTransfer.effectAllowed = "move";
+				e.dataTransfer.setData("text/plain", listIndex.toString());
+			}
+			listEl.classList.add("dragging");
+		};
+		
+		listEl.ondragend = () => {
+			listEl.classList.remove("dragging");
+		};
+		
+		listEl.ondragover = (e) => {
+			e.preventDefault();
+			if (e.dataTransfer) {
+				e.dataTransfer.dropEffect = "move";
+			}
+			const afterElement = this.getDragAfterElement(container, e.clientY, "list");
+			const dragging = container.querySelector(".dragging");
+			if (dragging) {
+				if (afterElement == null) {
+					container.appendChild(dragging as HTMLElement);
+				} else {
+					container.insertBefore(dragging as HTMLElement, afterElement);
+				}
+			}
+		};
+		
+		listEl.ondrop = async (e) => {
+			e.preventDefault();
+			if (e.dataTransfer) {
+				const fromIndex = parseInt(e.dataTransfer.getData("text/plain"));
+				const toIndex = Array.from(container.children).indexOf(listEl);
+				if (fromIndex !== toIndex && !isNaN(fromIndex)) {
+					const [movedList] = this.lists.splice(fromIndex, 1);
+					this.lists.splice(toIndex, 0, movedList);
+					await this.saveData();
+					this.render();
+				}
+			}
+		};
 		
 		// 列表头部
 		const headerEl = listEl.createDiv("list-sidebar-list-header");
@@ -130,8 +175,13 @@ export class ListView extends ItemView {
 		if (list.expanded) {
 			const itemsContainer = listEl.createDiv("list-sidebar-items");
 			
+			// 应用分隔线样式
+			if (this.plugin.settings.showDividers) {
+				itemsContainer.classList.add("show-dividers");
+			}
+			
 			list.items.forEach((item, itemIndex) => {
-				this.renderItem(itemsContainer, item, listIndex, itemIndex);
+				this.renderItem(itemsContainer, item, listIndex, itemIndex, list.items.length);
 			});
 
 			// 添加条目按钮
@@ -146,9 +196,70 @@ export class ListView extends ItemView {
 		}
 	}
 
-	renderItem(container: HTMLElement, item: ListItem, listIndex: number, itemIndex: number) {
+	renderItem(container: HTMLElement, item: ListItem, listIndex: number, itemIndex: number, totalItems: number) {
 		const itemEl = container.createDiv("list-sidebar-item");
 		itemEl.style.cursor = "pointer";
+		itemEl.draggable = true;
+		itemEl.dataset.itemIndex = itemIndex.toString();
+		itemEl.dataset.listIndex = listIndex.toString();
+		
+		// 应用背景色交替
+		if (this.plugin.settings.alternateBackground && itemIndex % 2 === 1) {
+			itemEl.classList.add("list-sidebar-item-alternate");
+		}
+		
+		// 拖拽处理
+		itemEl.ondragstart = (e) => {
+			e.stopPropagation();
+			if (e.dataTransfer) {
+				e.dataTransfer.effectAllowed = "move";
+				e.dataTransfer.setData("text/plain", JSON.stringify({ listIndex, itemIndex }));
+			}
+			itemEl.classList.add("dragging");
+		};
+		
+		itemEl.ondragend = () => {
+			itemEl.classList.remove("dragging");
+		};
+		
+		itemEl.ondragover = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (e.dataTransfer) {
+				e.dataTransfer.dropEffect = "move";
+			}
+			const afterElement = this.getDragAfterElement(container, e.clientY, "item");
+			const dragging = container.querySelector(".dragging");
+			if (dragging) {
+				if (afterElement == null) {
+					container.appendChild(dragging as HTMLElement);
+				} else {
+					container.insertBefore(dragging as HTMLElement, afterElement);
+				}
+			}
+		};
+		
+		itemEl.ondrop = async (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (e.dataTransfer) {
+				try {
+					const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+					const fromListIndex = data.listIndex;
+					const fromItemIndex = data.itemIndex;
+					const toItemIndex = Array.from(container.children).indexOf(itemEl);
+					
+					if (fromListIndex === listIndex && fromItemIndex !== toItemIndex && !isNaN(fromItemIndex) && !isNaN(toItemIndex)) {
+						const [movedItem] = this.lists[listIndex].items.splice(fromItemIndex, 1);
+						this.lists[listIndex].items.splice(toItemIndex, 0, movedItem);
+						await this.saveData();
+						this.render();
+					}
+				} catch (error) {
+					// 忽略解析错误
+				}
+			}
+		};
 		
 		// 条目内容（纯文本，居中，可双击编辑）
 		const contentEl = itemEl.createDiv("list-sidebar-item-content");
@@ -181,6 +292,24 @@ export class ListView extends ItemView {
 	async refresh() {
 		await this.loadData();
 		this.render();
+	}
+
+	getDragAfterElement(container: HTMLElement, y: number, type: string): HTMLElement | null {
+		const draggableElements = Array.from(container.children).filter((el: Element) => {
+			return el.classList.contains(type === "list" ? "list-sidebar-list" : "list-sidebar-item") && 
+			       !el.classList.contains("dragging");
+		}) as HTMLElement[];
+
+		return draggableElements.reduce((closest, child) => {
+			const box = child.getBoundingClientRect();
+			const offset = y - box.top - box.height / 2;
+
+			if (offset < 0 && offset > closest.offset) {
+				return { offset, element: child };
+			} else {
+				return closest;
+			}
+		}, { offset: Number.NEGATIVE_INFINITY, element: null as HTMLElement | null }).element;
 	}
 
 	async showConfirmDialog(message: string): Promise<boolean> {

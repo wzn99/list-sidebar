@@ -50,6 +50,10 @@
 	overflow: hidden;
 }
 
+.list-sidebar-list.dragging {
+	opacity: 0.5;
+}
+
 /* 列表头部 */
 .list-sidebar-list-header {
 	display: flex;
@@ -128,6 +132,13 @@
 	padding: 8px;
 }
 
+/* 分隔线样式 */
+.list-sidebar-items.show-dividers .list-sidebar-item:not(:last-child) {
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: 8px;
+	margin-bottom: 8px;
+}
+
 /* 单个列表项 */
 .list-sidebar-item {
 	display: flex;
@@ -141,6 +152,18 @@
 }
 
 .list-sidebar-item:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.list-sidebar-item.dragging {
+	opacity: 0.5;
+}
+
+.list-sidebar-item-alternate {
+	background-color: var(--background-modifier-border);
+}
+
+.list-sidebar-item-alternate:hover {
 	background-color: var(--background-modifier-hover);
 }
 

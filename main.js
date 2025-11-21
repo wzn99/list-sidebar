@@ -91,6 +91,46 @@ var ListView = class extends import_obsidian.ItemView {
   }
   renderList(container, list, listIndex) {
     const listEl = container.createDiv("list-sidebar-list");
+    listEl.draggable = true;
+    listEl.dataset.listIndex = listIndex.toString();
+    listEl.ondragstart = (e) => {
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", listIndex.toString());
+      }
+      listEl.classList.add("dragging");
+    };
+    listEl.ondragend = () => {
+      listEl.classList.remove("dragging");
+    };
+    listEl.ondragover = (e) => {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "move";
+      }
+      const afterElement = this.getDragAfterElement(container, e.clientY, "list");
+      const dragging = container.querySelector(".dragging");
+      if (dragging) {
+        if (afterElement == null) {
+          container.appendChild(dragging);
+        } else {
+          container.insertBefore(dragging, afterElement);
+        }
+      }
+    };
+    listEl.ondrop = async (e) => {
+      e.preventDefault();
+      if (e.dataTransfer) {
+        const fromIndex = parseInt(e.dataTransfer.getData("text/plain"));
+        const toIndex = Array.from(container.children).indexOf(listEl);
+        if (fromIndex !== toIndex && !isNaN(fromIndex)) {
+          const [movedList] = this.lists.splice(fromIndex, 1);
+          this.lists.splice(toIndex, 0, movedList);
+          await this.saveData();
+          this.render();
+        }
+      }
+    };
     const headerEl = listEl.createDiv("list-sidebar-list-header");
     const toggleBtn = headerEl.createEl("button", {
       cls: "list-sidebar-toggle-btn",
@@ -126,8 +166,11 @@ var ListView = class extends import_obsidian.ItemView {
     };
     if (list.expanded) {
       const itemsContainer = listEl.createDiv("list-sidebar-items");
+      if (this.plugin.settings.showDividers) {
+        itemsContainer.classList.add("show-dividers");
+      }
       list.items.forEach((item, itemIndex) => {
-        this.renderItem(itemsContainer, item, listIndex, itemIndex);
+        this.renderItem(itemsContainer, item, listIndex, itemIndex, list.items.length);
       });
       const addItemBtn = itemsContainer.createEl("button", {
         cls: "list-sidebar-add-item-btn",
@@ -139,9 +182,61 @@ var ListView = class extends import_obsidian.ItemView {
       };
     }
   }
-  renderItem(container, item, listIndex, itemIndex) {
+  renderItem(container, item, listIndex, itemIndex, totalItems) {
     const itemEl = container.createDiv("list-sidebar-item");
     itemEl.style.cursor = "pointer";
+    itemEl.draggable = true;
+    itemEl.dataset.itemIndex = itemIndex.toString();
+    itemEl.dataset.listIndex = listIndex.toString();
+    if (this.plugin.settings.alternateBackground && itemIndex % 2 === 1) {
+      itemEl.classList.add("list-sidebar-item-alternate");
+    }
+    itemEl.ondragstart = (e) => {
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", JSON.stringify({ listIndex, itemIndex }));
+      }
+      itemEl.classList.add("dragging");
+    };
+    itemEl.ondragend = () => {
+      itemEl.classList.remove("dragging");
+    };
+    itemEl.ondragover = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "move";
+      }
+      const afterElement = this.getDragAfterElement(container, e.clientY, "item");
+      const dragging = container.querySelector(".dragging");
+      if (dragging) {
+        if (afterElement == null) {
+          container.appendChild(dragging);
+        } else {
+          container.insertBefore(dragging, afterElement);
+        }
+      }
+    };
+    itemEl.ondrop = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        try {
+          const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+          const fromListIndex = data.listIndex;
+          const fromItemIndex = data.itemIndex;
+          const toItemIndex = Array.from(container.children).indexOf(itemEl);
+          if (fromListIndex === listIndex && fromItemIndex !== toItemIndex && !isNaN(fromItemIndex) && !isNaN(toItemIndex)) {
+            const [movedItem] = this.lists[listIndex].items.splice(fromItemIndex, 1);
+            this.lists[listIndex].items.splice(toItemIndex, 0, movedItem);
+            await this.saveData();
+            this.render();
+          }
+        } catch (error) {
+        }
+      }
+    };
     const contentEl = itemEl.createDiv("list-sidebar-item-content");
     contentEl.createEl("span", {
       text: item.content
@@ -165,6 +260,20 @@ var ListView = class extends import_obsidian.ItemView {
   async refresh() {
     await this.loadData();
     this.render();
+  }
+  getDragAfterElement(container, y, type) {
+    const draggableElements = Array.from(container.children).filter((el) => {
+      return el.classList.contains(type === "list" ? "list-sidebar-list" : "list-sidebar-item") && !el.classList.contains("dragging");
+    });
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
   }
   async showConfirmDialog(message) {
     return new Promise((resolve) => {
@@ -350,7 +459,9 @@ var ConfirmModal = class extends import_obsidian.Modal {
 
 // main.ts
 var DEFAULT_SETTINGS = {
-  filePath: "list-sidebar-data.md"
+  filePath: "list-sidebar-data.md",
+  showDividers: true,
+  alternateBackground: true
 };
 var ListSidebarPlugin = class extends import_obsidian2.Plugin {
   constructor() {
@@ -529,6 +640,22 @@ var ListSidebarSettingTab = class extends import_obsidian2.PluginSettingTab {
     containerEl.createEl("h2", { text: "List Sidebar Settings" });
     new import_obsidian2.Setting(containerEl).setName("Data File Path").setDesc("Markdown file path to save list data (relative to vault root)").addText((text) => text.setPlaceholder("e.g., list-sidebar-data.md").setValue(this.plugin.settings.filePath).onChange(async (value) => {
       this.plugin.settings.filePath = value;
+      await this.plugin.saveSettings();
+      const listView = this.plugin.listView;
+      if (listView) {
+        await listView.refresh();
+      }
+    }));
+    new import_obsidian2.Setting(containerEl).setName("Show Dividers").setDesc("Show thin horizontal lines between items").addToggle((toggle) => toggle.setValue(this.plugin.settings.showDividers).onChange(async (value) => {
+      this.plugin.settings.showDividers = value;
+      await this.plugin.saveSettings();
+      const listView = this.plugin.listView;
+      if (listView) {
+        await listView.refresh();
+      }
+    }));
+    new import_obsidian2.Setting(containerEl).setName("Alternate Background").setDesc("Use subtle alternating background colors for items").addToggle((toggle) => toggle.setValue(this.plugin.settings.alternateBackground).onChange(async (value) => {
+      this.plugin.settings.alternateBackground = value;
       await this.plugin.saveSettings();
       const listView = this.plugin.listView;
       if (listView) {

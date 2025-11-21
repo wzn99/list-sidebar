@@ -4,10 +4,14 @@ import { List, ListItem } from "./src/types";
 
 interface ListSidebarSettings {
 	filePath: string;
+	showDividers: boolean;
+	alternateBackground: boolean;
 }
 
 const DEFAULT_SETTINGS: ListSidebarSettings = {
-	filePath: "list-sidebar-data.md"
+	filePath: "list-sidebar-data.md",
+	showDividers: true,
+	alternateBackground: true
 };
 
 export default class ListSidebarPlugin extends Plugin {
@@ -237,6 +241,34 @@ class ListSidebarSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.filePath)
 				.onChange(async (value) => {
 					this.plugin.settings.filePath = value;
+					await this.plugin.saveSettings();
+					const listView = (this.plugin as any).listView;
+					if (listView) {
+						await listView.refresh();
+					}
+				}));
+
+		new Setting(containerEl)
+			.setName("Show Dividers")
+			.setDesc("Show thin horizontal lines between items")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showDividers)
+				.onChange(async (value) => {
+					this.plugin.settings.showDividers = value;
+					await this.plugin.saveSettings();
+					const listView = (this.plugin as any).listView;
+					if (listView) {
+						await listView.refresh();
+					}
+				}));
+
+		new Setting(containerEl)
+			.setName("Alternate Background")
+			.setDesc("Use subtle alternating background colors for items")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.alternateBackground)
+				.onChange(async (value) => {
+					this.plugin.settings.alternateBackground = value;
 					await this.plugin.saveSettings();
 					const listView = (this.plugin as any).listView;
 					if (listView) {
