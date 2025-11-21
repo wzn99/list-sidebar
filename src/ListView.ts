@@ -543,8 +543,16 @@ export class ListView extends ItemView {
 		};
 
 		textareaEl.focus();
+		// 处理中文输入法组合输入
+		let isComposing = false;
+		textareaEl.addEventListener("compositionstart", () => {
+			isComposing = true;
+		});
+		textareaEl.addEventListener("compositionend", () => {
+			isComposing = false;
+		});
 		textareaEl.onkeydown = async (e) => {
-			if (e.key === "Enter" && !e.shiftKey) {
+			if (e.key === "Enter" && !e.shiftKey && !isComposing) {
 				e.preventDefault();
 				await finishInput();
 			} else if (e.key === "Escape") {
@@ -589,8 +597,16 @@ export class ListView extends ItemView {
 		};
 
 		textareaEl.focus();
+		// 处理中文输入法组合输入
+		let isComposing = false;
+		textareaEl.addEventListener("compositionstart", () => {
+			isComposing = true;
+		});
+		textareaEl.addEventListener("compositionend", () => {
+			isComposing = false;
+		});
 		textareaEl.onkeydown = async (e) => {
-			if (e.key === "Enter" && !e.shiftKey) {
+			if (e.key === "Enter" && !e.shiftKey && !isComposing) {
 				e.preventDefault();
 				await finishInput();
 			} else if (e.key === "Escape") {
@@ -640,8 +656,16 @@ export class ListView extends ItemView {
 
 		textareaEl.focus();
 		textareaEl.select();
+		// 处理中文输入法组合输入
+		let isComposing = false;
+		textareaEl.addEventListener("compositionstart", () => {
+			isComposing = true;
+		});
+		textareaEl.addEventListener("compositionend", () => {
+			isComposing = false;
+		});
 		textareaEl.onkeydown = async (e) => {
-			if (e.key === "Enter" && !e.shiftKey) {
+			if (e.key === "Enter" && !e.shiftKey && !isComposing) {
 				e.preventDefault();
 				await finishInput();
 			} else if (e.key === "Escape") {
@@ -692,8 +716,16 @@ export class ListView extends ItemView {
 
 		textareaEl.focus();
 		textareaEl.select();
+		// 处理中文输入法组合输入
+		let isComposing = false;
+		textareaEl.addEventListener("compositionstart", () => {
+			isComposing = true;
+		});
+		textareaEl.addEventListener("compositionend", () => {
+			isComposing = false;
+		});
 		textareaEl.onkeydown = async (e) => {
-			if (e.key === "Enter" && !e.shiftKey) {
+			if (e.key === "Enter" && !e.shiftKey && !isComposing) {
 				e.preventDefault();
 				await finishInput();
 			} else if (e.key === "Escape") {

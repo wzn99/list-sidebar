@@ -455,8 +455,15 @@ var ListView = class extends import_obsidian.ItemView {
       }
     };
     textareaEl.focus();
+    let isComposing = false;
+    textareaEl.addEventListener("compositionstart", () => {
+      isComposing = true;
+    });
+    textareaEl.addEventListener("compositionend", () => {
+      isComposing = false;
+    });
     textareaEl.onkeydown = async (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === "Enter" && !e.shiftKey && !isComposing) {
         e.preventDefault();
         await finishInput();
       } else if (e.key === "Escape") {
@@ -497,8 +504,15 @@ var ListView = class extends import_obsidian.ItemView {
       }
     };
     textareaEl.focus();
+    let isComposing = false;
+    textareaEl.addEventListener("compositionstart", () => {
+      isComposing = true;
+    });
+    textareaEl.addEventListener("compositionend", () => {
+      isComposing = false;
+    });
     textareaEl.onkeydown = async (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === "Enter" && !e.shiftKey && !isComposing) {
         e.preventDefault();
         await finishInput();
       } else if (e.key === "Escape") {
@@ -542,8 +556,15 @@ var ListView = class extends import_obsidian.ItemView {
     };
     textareaEl.focus();
     textareaEl.select();
+    let isComposing = false;
+    textareaEl.addEventListener("compositionstart", () => {
+      isComposing = true;
+    });
+    textareaEl.addEventListener("compositionend", () => {
+      isComposing = false;
+    });
     textareaEl.onkeydown = async (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === "Enter" && !e.shiftKey && !isComposing) {
         e.preventDefault();
         await finishInput();
       } else if (e.key === "Escape") {
@@ -588,8 +609,15 @@ var ListView = class extends import_obsidian.ItemView {
     };
     textareaEl.focus();
     textareaEl.select();
+    let isComposing = false;
+    textareaEl.addEventListener("compositionstart", () => {
+      isComposing = true;
+    });
+    textareaEl.addEventListener("compositionend", () => {
+      isComposing = false;
+    });
     textareaEl.onkeydown = async (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === "Enter" && !e.shiftKey && !isComposing) {
         e.preventDefault();
         await finishInput();
       } else if (e.key === "Escape") {
