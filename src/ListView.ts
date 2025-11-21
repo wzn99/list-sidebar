@@ -524,12 +524,13 @@ export class ListView extends ItemView {
 		};
 		
 		itemEl.ondragover = (e) => {
-			// 验证container是否是有效的itemsContainer
-			if (!container.classList.contains("list-sidebar-items")) {
+			// 从itemEl找到其父容器（itemsContainer）
+			const itemsContainer = itemEl.closest(".list-sidebar-items") as HTMLElement;
+			if (!itemsContainer) {
 				return;
 			}
-			// 验证container是否在有效的list内
-			const listEl = container.closest(".list-sidebar-list");
+			// 验证itemsContainer是否在有效的list内
+			const listEl = itemsContainer.closest(".list-sidebar-list");
 			if (!listEl) {
 				return;
 			}
@@ -544,24 +545,25 @@ export class ListView extends ItemView {
 			if (e.dataTransfer) {
 				e.dataTransfer.dropEffect = "move";
 			}
-			const afterElement = this.getDragAfterElement(container, e.clientY, "item");
+			const afterElement = this.getDragAfterElement(itemsContainer, e.clientY, "item");
 			// 实时移动其他条目（类似list的做法），让其他条目让开
 			if (afterElement == null) {
-				container.appendChild(dragging);
+				itemsContainer.appendChild(dragging);
 			} else {
-				container.insertBefore(dragging, afterElement);
+				itemsContainer.insertBefore(dragging, afterElement);
 			}
 		};
 		
 		itemEl.ondrop = async (e) => {
-			// 验证container是否是有效的itemsContainer
-			if (!container.classList.contains("list-sidebar-items")) {
+			// 从itemEl找到其父容器（itemsContainer）
+			const itemsContainer = itemEl.closest(".list-sidebar-items") as HTMLElement;
+			if (!itemsContainer) {
 				e.preventDefault();
 				this.render();
 				return;
 			}
-			// 验证container是否在有效的list内
-			const listEl = container.closest(".list-sidebar-list") as HTMLElement;
+			// 验证itemsContainer是否在有效的list内
+			const listEl = itemsContainer.closest(".list-sidebar-list") as HTMLElement;
 			if (!listEl) {
 				e.preventDefault();
 				this.render();
@@ -582,7 +584,7 @@ export class ListView extends ItemView {
 					const data = JSON.parse(e.dataTransfer.getData("text/plain"));
 					const fromListIndex = data.listIndex;
 					const fromItemIndex = data.itemIndex;
-					const toItemIndex = Array.from(container.children).filter(
+					const toItemIndex = Array.from(itemsContainer.children).filter(
 						el => el.classList.contains("list-sidebar-item")
 					).indexOf(itemEl);
 					

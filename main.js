@@ -448,10 +448,11 @@ var ListView = class extends import_obsidian.ItemView {
     };
     itemEl.ondragover = (e) => {
       var _a;
-      if (!container.classList.contains("list-sidebar-items")) {
+      const itemsContainer = itemEl.closest(".list-sidebar-items");
+      if (!itemsContainer) {
         return;
       }
-      const listEl = container.closest(".list-sidebar-list");
+      const listEl = itemsContainer.closest(".list-sidebar-list");
       if (!listEl) {
         return;
       }
@@ -463,20 +464,21 @@ var ListView = class extends import_obsidian.ItemView {
       if (e.dataTransfer) {
         e.dataTransfer.dropEffect = "move";
       }
-      const afterElement = this.getDragAfterElement(container, e.clientY, "item");
+      const afterElement = this.getDragAfterElement(itemsContainer, e.clientY, "item");
       if (afterElement == null) {
-        container.appendChild(dragging);
+        itemsContainer.appendChild(dragging);
       } else {
-        container.insertBefore(dragging, afterElement);
+        itemsContainer.insertBefore(dragging, afterElement);
       }
     };
     itemEl.ondrop = async (e) => {
-      if (!container.classList.contains("list-sidebar-items")) {
+      const itemsContainer = itemEl.closest(".list-sidebar-items");
+      if (!itemsContainer) {
         e.preventDefault();
         this.render();
         return;
       }
-      const listEl = container.closest(".list-sidebar-list");
+      const listEl = itemsContainer.closest(".list-sidebar-list");
       if (!listEl) {
         e.preventDefault();
         this.render();
@@ -495,7 +497,7 @@ var ListView = class extends import_obsidian.ItemView {
           const data = JSON.parse(e.dataTransfer.getData("text/plain"));
           const fromListIndex = data.listIndex;
           const fromItemIndex = data.itemIndex;
-          const toItemIndex = Array.from(container.children).filter(
+          const toItemIndex = Array.from(itemsContainer.children).filter(
             (el) => el.classList.contains("list-sidebar-item")
           ).indexOf(itemEl);
           if (!isNaN(fromListIndex) && !isNaN(fromItemIndex) && !isNaN(toItemIndex) && toItemIndex >= 0 && fromListIndex >= 0 && fromListIndex < this.lists.length && fromItemIndex >= 0 && fromItemIndex < this.lists[fromListIndex].items.length && toItemIndex <= this.lists[targetListIndex].items.length) {
