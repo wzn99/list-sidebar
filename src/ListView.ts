@@ -18,11 +18,11 @@ export class ListView extends ItemView {
 	}
 
 	getDisplayText() {
-		return "列表侧边栏";
+		return "List Sidebar";
 	}
 
 	getIcon() {
-		return "list";
+		return "layers";
 	}
 
 	async onOpen() {
@@ -53,10 +53,10 @@ export class ListView extends ItemView {
 		// 添加设置按钮
 		const headerEl = container.createDiv("list-sidebar-header");
 		const settingsBtn = headerEl.createEl("button", {
-			text: "⚙️",
 			cls: "list-sidebar-settings-btn",
-			attr: { "aria-label": "设置" }
+			attr: { "aria-label": "Settings" }
 		});
+		settingsBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
 		settingsBtn.onclick = () => {
 			this.plugin.openSettings();
 		};
@@ -71,11 +71,12 @@ export class ListView extends ItemView {
 
 		// 添加新列表按钮
 		const addListBtn = container.createEl("button", {
-			text: "+ 添加列表",
-			cls: "list-sidebar-add-list-btn"
+			cls: "list-sidebar-add-list-btn",
+			attr: { "aria-label": "Add List" }
 		});
+		addListBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
 		addListBtn.onclick = async () => {
-			const name = await this.promptForInput("输入列表名称：");
+			const name = await this.promptForInput("", "");
 			if (name && name.trim()) {
 				const newList: List = {
 					name: name.trim(),
@@ -97,17 +98,19 @@ export class ListView extends ItemView {
 		
 		// 折叠/展开按钮
 		const toggleBtn = headerEl.createEl("button", {
-			text: list.expanded ? "▼" : "▶",
 			cls: "list-sidebar-toggle-btn",
-			attr: { "aria-label": list.expanded ? "折叠" : "展开" }
+			attr: { "aria-label": list.expanded ? "Collapse" : "Expand" }
 		});
+		toggleBtn.innerHTML = list.expanded 
+			? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>'
+			: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>';
 		toggleBtn.onclick = async () => {
 			list.expanded = !list.expanded;
 			await this.saveData();
 			this.render();
 		};
 
-		// 列表名称
+		// 列表名称（居中）
 		const nameEl = headerEl.createEl("span", {
 			text: list.name,
 			cls: "list-sidebar-list-name"
@@ -115,12 +118,12 @@ export class ListView extends ItemView {
 
 		// 删除列表按钮
 		const deleteListBtn = headerEl.createEl("button", {
-			text: "🗑️",
 			cls: "list-sidebar-delete-btn",
-			attr: { "aria-label": "删除列表" }
+			attr: { "aria-label": "Delete List" }
 		});
+		deleteListBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
 		deleteListBtn.onclick = async () => {
-			const confirmed = await this.showConfirmDialog(`确定要删除列表"${list.name}"吗？`);
+			const confirmed = await this.showConfirmDialog(`Delete list "${list.name}"?`);
 			if (confirmed) {
 				this.lists.splice(listIndex, 1);
 				await this.saveData();
@@ -138,11 +141,12 @@ export class ListView extends ItemView {
 
 			// 添加条目按钮
 			const addItemBtn = itemsContainer.createEl("button", {
-				text: "+ 添加条目",
-				cls: "list-sidebar-add-item-btn"
+				cls: "list-sidebar-add-item-btn",
+				attr: { "aria-label": "Add Item" }
 			});
+		addItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
 			addItemBtn.onclick = async () => {
-				const content = await this.promptForInput("输入条目内容（支持笔记链接[[note]]或纯文本）：");
+				const content = await this.promptForInput("", "");
 				if (content && content.trim()) {
 					const newItem: ListItem = {
 						content: content.trim()
@@ -158,38 +162,36 @@ export class ListView extends ItemView {
 	renderItem(container: HTMLElement, item: ListItem, listIndex: number, itemIndex: number) {
 		const itemEl = container.createDiv("list-sidebar-item");
 		
-		// 条目内容
+		// 条目内容（纯文本，居中）
 		const contentEl = itemEl.createDiv("list-sidebar-item-content");
+		contentEl.createEl("span", {
+			text: item.content
+		});
+
+		// 按钮容器（悬停时显示）
+		const btnContainer = itemEl.createDiv("list-sidebar-item-buttons");
 		
-		// 检查是否是笔记链接
-		const linkMatch = item.content.match(/\[\[([^\]]+)\]\]/);
-		if (linkMatch) {
-			// 笔记链接
-			const linkText = linkMatch[1];
-			const linkEl = contentEl.createEl("a", {
-				text: linkText,
-				cls: "internal-link"
-			});
-			linkEl.onclick = async (e) => {
-				e.preventDefault();
-				const file = this.app.metadataCache.getFirstLinkpathDest(linkText, "");
-				if (file) {
-					await this.app.workspace.openLinkText(linkText, "", true);
-				}
-			};
-		} else {
-			// 纯文本
-			contentEl.createEl("span", {
-				text: item.content
-			});
-		}
+		// 编辑条目按钮
+		const editItemBtn = btnContainer.createEl("button", {
+			cls: "list-sidebar-edit-item-btn",
+			attr: { "aria-label": "Edit Item" }
+		});
+		editItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+		editItemBtn.onclick = async () => {
+			const newContent = await this.promptForInput("", item.content);
+			if (newContent !== null && newContent.trim()) {
+				this.lists[listIndex].items[itemIndex].content = newContent.trim();
+				await this.saveData();
+				this.render();
+			}
+		};
 
 		// 删除条目按钮
-		const deleteItemBtn = itemEl.createEl("button", {
-			text: "×",
+		const deleteItemBtn = btnContainer.createEl("button", {
 			cls: "list-sidebar-delete-item-btn",
-			attr: { "aria-label": "删除条目" }
+			attr: { "aria-label": "Delete Item" }
 		});
+		deleteItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
 		deleteItemBtn.onclick = async () => {
 			this.lists[listIndex].items.splice(itemIndex, 1);
 			await this.saveData();
@@ -197,9 +199,9 @@ export class ListView extends ItemView {
 		};
 	}
 
-	async promptForInput(prompt: string): Promise<string | null> {
+	async promptForInput(prompt: string, defaultValue: string = ""): Promise<string | null> {
 		return new Promise((resolve) => {
-			const modal = new InputModal(this.app, prompt, (value) => {
+			const modal = new InputModal(this.app, prompt, defaultValue, (value) => {
 				resolve(value);
 			});
 			modal.open();
@@ -225,7 +227,7 @@ class InputModal extends Modal {
 	private inputEl!: HTMLInputElement;
 	private onSubmit: (value: string | null) => void;
 
-	constructor(app: App, private prompt: string, onSubmit: (value: string | null) => void) {
+	constructor(app: App, private prompt: string, private defaultValue: string, onSubmit: (value: string | null) => void) {
 		super(app);
 		this.onSubmit = onSubmit;
 	}
@@ -234,42 +236,33 @@ class InputModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 
-		contentEl.createEl("h2", { text: this.prompt });
-
+		// 只显示输入框，不显示提示信息
 		this.inputEl = contentEl.createEl("input", {
 			type: "text",
-			placeholder: "输入内容..."
+			cls: "list-sidebar-input"
 		});
+		
+		if (this.defaultValue) {
+			this.inputEl.value = this.defaultValue;
+		}
 
-		this.inputEl.focus();
-		this.inputEl.select();
-
-		const buttonContainer = contentEl.createDiv("modal-button-container");
-		const submitBtn = buttonContainer.createEl("button", {
-			text: "确定",
-			cls: "mod-cta"
-		});
-		const cancelBtn = buttonContainer.createEl("button", {
-			text: "取消"
-		});
-
-		submitBtn.onclick = () => {
-			this.onSubmit(this.inputEl.value);
-			this.close();
-		};
-
-		cancelBtn.onclick = () => {
-			this.onSubmit(null);
-			this.close();
-		};
+		// 自动focus并选中，可以直接打字
+		setTimeout(() => {
+			this.inputEl.focus();
+			if (this.defaultValue) {
+				this.inputEl.select();
+			}
+		}, 0);
 
 		this.inputEl.onkeydown = (e) => {
 			if (e.key === "Enter") {
 				e.preventDefault();
-				submitBtn.click();
+				this.onSubmit(this.inputEl.value);
+				this.close();
 			} else if (e.key === "Escape") {
 				e.preventDefault();
-				cancelBtn.click();
+				this.onSubmit(null);
+				this.close();
 			}
 		};
 	}
@@ -296,11 +289,11 @@ class ConfirmModal extends Modal {
 
 		const buttonContainer = contentEl.createDiv("modal-button-container");
 		const confirmBtn = buttonContainer.createEl("button", {
-			text: "确定",
+			text: "OK",
 			cls: "mod-cta"
 		});
 		const cancelBtn = buttonContainer.createEl("button", {
-			text: "取消"
+			text: "Cancel"
 		});
 
 		confirmBtn.onclick = () => {

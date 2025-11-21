@@ -43,10 +43,10 @@ var ListView = class extends import_obsidian.ItemView {
     return VIEW_TYPE_LIST_SIDEBAR;
   }
   getDisplayText() {
-    return "\u5217\u8868\u4FA7\u8FB9\u680F";
+    return "List Sidebar";
   }
   getIcon() {
-    return "list";
+    return "layers";
   }
   async onOpen() {
     await this.loadData();
@@ -69,10 +69,10 @@ var ListView = class extends import_obsidian.ItemView {
     container.addClass("list-sidebar-container");
     const headerEl = container.createDiv("list-sidebar-header");
     const settingsBtn = headerEl.createEl("button", {
-      text: "\u2699\uFE0F",
       cls: "list-sidebar-settings-btn",
-      attr: { "aria-label": "\u8BBE\u7F6E" }
+      attr: { "aria-label": "Settings" }
     });
+    settingsBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
     settingsBtn.onclick = () => {
       this.plugin.openSettings();
     };
@@ -81,11 +81,12 @@ var ListView = class extends import_obsidian.ItemView {
       this.renderList(listsContainer, list, listIndex);
     });
     const addListBtn = container.createEl("button", {
-      text: "+ \u6DFB\u52A0\u5217\u8868",
-      cls: "list-sidebar-add-list-btn"
+      cls: "list-sidebar-add-list-btn",
+      attr: { "aria-label": "Add List" }
     });
+    addListBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
     addListBtn.onclick = async () => {
-      const name = await this.promptForInput("\u8F93\u5165\u5217\u8868\u540D\u79F0\uFF1A");
+      const name = await this.promptForInput("", "");
       if (name && name.trim()) {
         const newList = {
           name: name.trim(),
@@ -102,10 +103,10 @@ var ListView = class extends import_obsidian.ItemView {
     const listEl = container.createDiv("list-sidebar-list");
     const headerEl = listEl.createDiv("list-sidebar-list-header");
     const toggleBtn = headerEl.createEl("button", {
-      text: list.expanded ? "\u25BC" : "\u25B6",
       cls: "list-sidebar-toggle-btn",
-      attr: { "aria-label": list.expanded ? "\u6298\u53E0" : "\u5C55\u5F00" }
+      attr: { "aria-label": list.expanded ? "Collapse" : "Expand" }
     });
+    toggleBtn.innerHTML = list.expanded ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>';
     toggleBtn.onclick = async () => {
       list.expanded = !list.expanded;
       await this.saveData();
@@ -116,12 +117,12 @@ var ListView = class extends import_obsidian.ItemView {
       cls: "list-sidebar-list-name"
     });
     const deleteListBtn = headerEl.createEl("button", {
-      text: "\u{1F5D1}\uFE0F",
       cls: "list-sidebar-delete-btn",
-      attr: { "aria-label": "\u5220\u9664\u5217\u8868" }
+      attr: { "aria-label": "Delete List" }
     });
+    deleteListBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
     deleteListBtn.onclick = async () => {
-      const confirmed = await this.showConfirmDialog(`\u786E\u5B9A\u8981\u5220\u9664\u5217\u8868"${list.name}"\u5417\uFF1F`);
+      const confirmed = await this.showConfirmDialog(`Delete list "${list.name}"?`);
       if (confirmed) {
         this.lists.splice(listIndex, 1);
         await this.saveData();
@@ -134,11 +135,12 @@ var ListView = class extends import_obsidian.ItemView {
         this.renderItem(itemsContainer, item, listIndex, itemIndex);
       });
       const addItemBtn = itemsContainer.createEl("button", {
-        text: "+ \u6DFB\u52A0\u6761\u76EE",
-        cls: "list-sidebar-add-item-btn"
+        cls: "list-sidebar-add-item-btn",
+        attr: { "aria-label": "Add Item" }
       });
+      addItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
       addItemBtn.onclick = async () => {
-        const content = await this.promptForInput("\u8F93\u5165\u6761\u76EE\u5185\u5BB9\uFF08\u652F\u6301\u7B14\u8BB0\u94FE\u63A5[[note]]\u6216\u7EAF\u6587\u672C\uFF09\uFF1A");
+        const content = await this.promptForInput("", "");
         if (content && content.trim()) {
           const newItem = {
             content: content.trim()
@@ -153,39 +155,37 @@ var ListView = class extends import_obsidian.ItemView {
   renderItem(container, item, listIndex, itemIndex) {
     const itemEl = container.createDiv("list-sidebar-item");
     const contentEl = itemEl.createDiv("list-sidebar-item-content");
-    const linkMatch = item.content.match(/\[\[([^\]]+)\]\]/);
-    if (linkMatch) {
-      const linkText = linkMatch[1];
-      const linkEl = contentEl.createEl("a", {
-        text: linkText,
-        cls: "internal-link"
-      });
-      linkEl.onclick = async (e) => {
-        e.preventDefault();
-        const file = this.app.metadataCache.getFirstLinkpathDest(linkText, "");
-        if (file) {
-          await this.app.workspace.openLinkText(linkText, "", true);
-        }
-      };
-    } else {
-      contentEl.createEl("span", {
-        text: item.content
-      });
-    }
-    const deleteItemBtn = itemEl.createEl("button", {
-      text: "\xD7",
-      cls: "list-sidebar-delete-item-btn",
-      attr: { "aria-label": "\u5220\u9664\u6761\u76EE" }
+    contentEl.createEl("span", {
+      text: item.content
     });
+    const btnContainer = itemEl.createDiv("list-sidebar-item-buttons");
+    const editItemBtn = btnContainer.createEl("button", {
+      cls: "list-sidebar-edit-item-btn",
+      attr: { "aria-label": "Edit Item" }
+    });
+    editItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+    editItemBtn.onclick = async () => {
+      const newContent = await this.promptForInput("", item.content);
+      if (newContent !== null && newContent.trim()) {
+        this.lists[listIndex].items[itemIndex].content = newContent.trim();
+        await this.saveData();
+        this.render();
+      }
+    };
+    const deleteItemBtn = btnContainer.createEl("button", {
+      cls: "list-sidebar-delete-item-btn",
+      attr: { "aria-label": "Delete Item" }
+    });
+    deleteItemBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
     deleteItemBtn.onclick = async () => {
       this.lists[listIndex].items.splice(itemIndex, 1);
       await this.saveData();
       this.render();
     };
   }
-  async promptForInput(prompt) {
+  async promptForInput(prompt, defaultValue = "") {
     return new Promise((resolve) => {
-      const modal = new InputModal(this.app, prompt, (value) => {
+      const modal = new InputModal(this.app, prompt, defaultValue, (value) => {
         resolve(value);
       });
       modal.open();
@@ -205,44 +205,37 @@ var ListView = class extends import_obsidian.ItemView {
   }
 };
 var InputModal = class extends import_obsidian.Modal {
-  constructor(app, prompt, onSubmit) {
+  constructor(app, prompt, defaultValue, onSubmit) {
     super(app);
     this.prompt = prompt;
+    this.defaultValue = defaultValue;
     this.onSubmit = onSubmit;
   }
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h2", { text: this.prompt });
     this.inputEl = contentEl.createEl("input", {
       type: "text",
-      placeholder: "\u8F93\u5165\u5185\u5BB9..."
+      cls: "list-sidebar-input"
     });
-    this.inputEl.focus();
-    this.inputEl.select();
-    const buttonContainer = contentEl.createDiv("modal-button-container");
-    const submitBtn = buttonContainer.createEl("button", {
-      text: "\u786E\u5B9A",
-      cls: "mod-cta"
-    });
-    const cancelBtn = buttonContainer.createEl("button", {
-      text: "\u53D6\u6D88"
-    });
-    submitBtn.onclick = () => {
-      this.onSubmit(this.inputEl.value);
-      this.close();
-    };
-    cancelBtn.onclick = () => {
-      this.onSubmit(null);
-      this.close();
-    };
+    if (this.defaultValue) {
+      this.inputEl.value = this.defaultValue;
+    }
+    setTimeout(() => {
+      this.inputEl.focus();
+      if (this.defaultValue) {
+        this.inputEl.select();
+      }
+    }, 0);
     this.inputEl.onkeydown = (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        submitBtn.click();
+        this.onSubmit(this.inputEl.value);
+        this.close();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        cancelBtn.click();
+        this.onSubmit(null);
+        this.close();
       }
     };
   }
@@ -263,11 +256,11 @@ var ConfirmModal = class extends import_obsidian.Modal {
     contentEl.createEl("p", { text: this.message });
     const buttonContainer = contentEl.createDiv("modal-button-container");
     const confirmBtn = buttonContainer.createEl("button", {
-      text: "\u786E\u5B9A",
+      text: "OK",
       cls: "mod-cta"
     });
     const cancelBtn = buttonContainer.createEl("button", {
-      text: "\u53D6\u6D88"
+      text: "Cancel"
     });
     confirmBtn.onclick = () => {
       this.onSubmit(true);
@@ -287,7 +280,7 @@ var ConfirmModal = class extends import_obsidian.Modal {
 
 // main.ts
 var DEFAULT_SETTINGS = {
-  filePath: "\u5217\u8868\u4FA7\u8FB9\u680F\u6570\u636E.md"
+  filePath: "list-sidebar-data.md"
 };
 var ListSidebarPlugin = class extends import_obsidian2.Plugin {
   constructor() {
@@ -304,12 +297,12 @@ var ListSidebarPlugin = class extends import_obsidian2.Plugin {
         return view;
       }
     );
-    this.addRibbonIcon("list", "\u6253\u5F00\u5217\u8868\u4FA7\u8FB9\u680F", () => {
+    this.addRibbonIcon("layers", "List Sidebar", () => {
       this.activateView();
     });
     this.addCommand({
       id: "open-list-sidebar",
-      name: "\u6253\u5F00\u5217\u8868\u4FA7\u8FB9\u680F",
+      name: "Open List Sidebar",
       callback: () => {
         this.activateView();
       }
@@ -463,8 +456,8 @@ var ListSidebarSettingTab = class extends import_obsidian2.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "\u5217\u8868\u4FA7\u8FB9\u680F\u8BBE\u7F6E" });
-    new import_obsidian2.Setting(containerEl).setName("\u6570\u636E\u6587\u4EF6\u8DEF\u5F84").setDesc("\u4FDD\u5B58\u5217\u8868\u6570\u636E\u7684Markdown\u6587\u4EF6\u8DEF\u5F84\uFF08\u76F8\u5BF9\u4E8E\u5E93\u6839\u76EE\u5F55\uFF09").addText((text) => text.setPlaceholder("\u4F8B\u5982: \u5217\u8868\u4FA7\u8FB9\u680F\u6570\u636E.md").setValue(this.plugin.settings.filePath).onChange(async (value) => {
+    containerEl.createEl("h2", { text: "List Sidebar Settings" });
+    new import_obsidian2.Setting(containerEl).setName("Data File Path").setDesc("Markdown file path to save list data (relative to vault root)").addText((text) => text.setPlaceholder("e.g., list-sidebar-data.md").setValue(this.plugin.settings.filePath).onChange(async (value) => {
       this.plugin.settings.filePath = value;
       await this.plugin.saveSettings();
       const listView = this.plugin.listView;

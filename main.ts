@@ -7,7 +7,7 @@ interface ListSidebarSettings {
 }
 
 const DEFAULT_SETTINGS: ListSidebarSettings = {
-	filePath: "列表侧边栏数据.md"
+	filePath: "list-sidebar-data.md"
 };
 
 export default class ListSidebarPlugin extends Plugin {
@@ -28,14 +28,14 @@ export default class ListSidebarPlugin extends Plugin {
 		);
 
 		// 添加Ribbon图标
-		this.addRibbonIcon("list", "打开列表侧边栏", () => {
+		this.addRibbonIcon("layers", "List Sidebar", () => {
 			this.activateView();
 		});
 
 		// 添加命令
 		this.addCommand({
 			id: "open-list-sidebar",
-			name: "打开列表侧边栏",
+			name: "Open List Sidebar",
 			callback: () => {
 				this.activateView();
 			}
@@ -227,13 +227,13 @@ class ListSidebarSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "列表侧边栏设置" });
+		containerEl.createEl("h2", { text: "List Sidebar Settings" });
 
 		new Setting(containerEl)
-			.setName("数据文件路径")
-			.setDesc("保存列表数据的Markdown文件路径（相对于库根目录）")
+			.setName("Data File Path")
+			.setDesc("Markdown file path to save list data (relative to vault root)")
 			.addText(text => text
-				.setPlaceholder("例如: 列表侧边栏数据.md")
+				.setPlaceholder("e.g., list-sidebar-data.md")
 				.setValue(this.plugin.settings.filePath)
 				.onChange(async (value) => {
 					this.plugin.settings.filePath = value;
