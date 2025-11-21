@@ -78,19 +78,42 @@ var ListView = class extends import_obsidian.ItemView {
     };
     const listsContainer = container.createDiv("list-sidebar-lists");
     listsContainer.ondragover = (e) => {
-      const dragging = container.querySelector(".list-sidebar-item.dragging");
-      if (dragging) {
+      const draggingItem = container.querySelector(".list-sidebar-item.dragging");
+      const draggingList = container.querySelector(".list-sidebar-list.dragging");
+      if (draggingItem) {
         e.preventDefault();
         if (e.dataTransfer) {
           e.dataTransfer.dropEffect = "none";
         }
+      } else if (draggingList) {
+        e.preventDefault();
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = "move";
+        }
       }
     };
-    listsContainer.ondrop = (e) => {
-      const dragging = container.querySelector(".list-sidebar-item.dragging");
-      if (dragging) {
+    listsContainer.ondrop = async (e) => {
+      const draggingItem = container.querySelector(".list-sidebar-item.dragging");
+      const draggingList = container.querySelector(".list-sidebar-list.dragging");
+      if (draggingItem) {
         e.preventDefault();
         this.render();
+      } else if (draggingList) {
+        e.preventDefault();
+        if (e.dataTransfer) {
+          const fromIndex = parseInt(e.dataTransfer.getData("text/plain"));
+          if (!isNaN(fromIndex)) {
+            const toIndex = Array.from(listsContainer.children).filter(
+              (el) => el.classList.contains("list-sidebar-list")
+            ).indexOf(draggingList);
+            if (toIndex >= 0 && toIndex < this.lists.length && fromIndex !== toIndex) {
+              draggingList.dataset.dragProcessed = "true";
+              const [movedList] = this.lists.splice(fromIndex, 1);
+              this.lists.splice(toIndex, 0, movedList);
+              await this.saveData();
+            }
+          }
+        }
       }
     };
     container.ondragover = (e) => {
@@ -141,19 +164,26 @@ var ListView = class extends import_obsidian.ItemView {
         e.dataTransfer.setData("text/plain", listIndex.toString());
       }
       listEl.classList.add("dragging");
+      listEl.dataset.dragProcessed = "false";
       dragStartIndex = listIndex;
       isValidDrop = false;
     };
     listEl.ondragend = async (e) => {
+      const wasProcessed = listEl.dataset.dragProcessed === "true";
       listEl.classList.remove("dragging");
+      delete listEl.dataset.dragProcessed;
+      if (wasProcessed || isValidDrop) {
+        this.render();
+        return;
+      }
       const finalIndex = Array.from(container.children).filter(
         (el) => el.classList.contains("list-sidebar-list")
       ).indexOf(listEl);
-      if (finalIndex === dragStartIndex && !isValidDrop) {
+      if (finalIndex === dragStartIndex) {
         this.render();
-      } else if (finalIndex !== dragStartIndex && !isValidDrop) {
-        const validIndex = Math.min(finalIndex, this.lists.length - 1);
-        if (validIndex >= 0 && validIndex !== dragStartIndex) {
+      } else if (finalIndex !== dragStartIndex) {
+        const validIndex = Math.min(Math.max(0, finalIndex), this.lists.length - 1);
+        if (validIndex >= 0 && validIndex !== dragStartIndex && validIndex < this.lists.length) {
           const [movedList] = this.lists.splice(dragStartIndex, 1);
           this.lists.splice(validIndex, 0, movedList);
           await this.saveData();
@@ -187,10 +217,10 @@ var ListView = class extends import_obsidian.ItemView {
         ).indexOf(listEl);
         if (fromIndex !== toIndex && !isNaN(fromIndex) && toIndex >= 0 && toIndex < this.lists.length) {
           isValidDrop = true;
+          listEl.dataset.dragProcessed = "true";
           const [movedList] = this.lists.splice(fromIndex, 1);
           this.lists.splice(toIndex, 0, movedList);
           await this.saveData();
-          this.render();
         }
       }
     };
