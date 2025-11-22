@@ -28,11 +28,6 @@ An Obsidian plugin that displays collapsible lists in the sidebar for quick acce
 
 Coming soon...
 
-### Manual Installation
-
-1. Download the latest release files: `main.js`, `manifest.json`, and `styles.css`
-2. Place them in your vault's `.obsidian/plugins/obsidian-list-sidebar/` directory
-3. Reload Obsidian or restart the application
 
 ## Usage
 
@@ -67,6 +62,3 @@ List data is saved in Markdown format:
 - Plain text item 3
 ```
 
-## License
-
-MIT
