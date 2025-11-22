@@ -524,75 +524,48 @@ export class ListView extends ItemView {
 		};
 		
 		itemEl.ondragover = (e) => {
-			// 从itemEl找到其父容器（itemsContainer）
-			const itemsContainer = itemEl.closest(".list-sidebar-items") as HTMLElement;
-			if (!itemsContainer) {
-				return;
-			}
-			// 验证itemsContainer是否在有效的list内
-			const listEl = itemsContainer.closest(".list-sidebar-list");
-			if (!listEl) {
-				return;
-			}
-			
 			e.preventDefault();
 			e.stopPropagation();
-			// 在整个主容器中查找dragging元素（可能来自其他list）
-			const dragging = this.mainContainer?.querySelector(".list-sidebar-item.dragging") as HTMLElement;
-			if (!dragging) return;
-			
-			// 允许跨list移动，只要在有效的list容器内
 			if (e.dataTransfer) {
 				e.dataTransfer.dropEffect = "move";
 			}
-			const afterElement = this.getDragAfterElement(itemsContainer, e.clientY, "item");
-			// 实时移动其他条目（类似list的做法），让其他条目让开
-			if (afterElement == null) {
-				itemsContainer.appendChild(dragging);
-			} else {
-				itemsContainer.insertBefore(dragging, afterElement);
+			const afterElement = this.getDragAfterElement(container, e.clientY, "item");
+			// 先在当前container中查找，如果找不到（跨list拖移），在整个主容器中查找
+			let dragging = container.querySelector(".list-sidebar-item.dragging") as HTMLElement;
+			if (!dragging && this.mainContainer) {
+				dragging = this.mainContainer.querySelector(".list-sidebar-item.dragging") as HTMLElement;
+			}
+			if (dragging) {
+				if (afterElement == null) {
+					container.appendChild(dragging);
+				} else {
+					container.insertBefore(dragging, afterElement);
+				}
 			}
 		};
 		
 		itemEl.ondrop = async (e) => {
-			// 从itemEl找到其父容器（itemsContainer）
-			const itemsContainer = itemEl.closest(".list-sidebar-items") as HTMLElement;
-			if (!itemsContainer) {
-				e.preventDefault();
-				this.render();
-				return;
-			}
-			// 验证itemsContainer是否在有效的list内
-			const listEl = itemsContainer.closest(".list-sidebar-list") as HTMLElement;
-			if (!listEl) {
-				e.preventDefault();
-				this.render();
-				return;
-			}
-			const targetListIndex = parseInt(listEl.dataset.listIndex || "-1");
-			if (targetListIndex < 0 || targetListIndex >= this.lists.length) {
-				e.preventDefault();
-				this.render();
-				return;
-			}
-			
 			e.preventDefault();
 			e.stopPropagation();
-			
 			if (e.dataTransfer) {
 				try {
 					const data = JSON.parse(e.dataTransfer.getData("text/plain"));
 					const fromListIndex = data.listIndex;
 					const fromItemIndex = data.itemIndex;
-					const toItemIndex = Array.from(itemsContainer.children).filter(
+					const toItemIndex = Array.from(container.children).filter(
 						el => el.classList.contains("list-sidebar-item")
 					).indexOf(itemEl);
+					
+					// 验证目标listIndex（从container的父list获取）
+					const targetListEl = container.closest(".list-sidebar-list") as HTMLElement;
+					const targetListIndex = targetListEl ? parseInt(targetListEl.dataset.listIndex || "-1") : -1;
 					
 					// 支持跨list移动，只要位置有效
 					if (!isNaN(fromListIndex) && !isNaN(fromItemIndex) && 
 					    !isNaN(toItemIndex) && toItemIndex >= 0 && 
 					    fromListIndex >= 0 && fromListIndex < this.lists.length &&
 					    fromItemIndex >= 0 && fromItemIndex < this.lists[fromListIndex].items.length &&
+					    targetListIndex >= 0 && targetListIndex < this.lists.length &&
 					    toItemIndex <= this.lists[targetListIndex].items.length) {
 						// 如果是在同一list内移动
 						if (fromListIndex === targetListIndex && fromItemIndex !== toItemIndex) {
