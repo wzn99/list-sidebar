@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-list-sidebar",
 	"name": "List Sidebar",
-	"version": "2.2.0",
+	"version": "v2.2.0",
 	"minAppVersion": "0.15.0",
 	"description": "Display and manage important lists in the sidebar.",
 	"author": "Your Name",
