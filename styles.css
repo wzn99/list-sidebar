@@ -258,7 +258,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 4px 8px;
+	padding: 0 8px;
 	margin-bottom: 4px;
 	border-radius: 4px;
 	transition: background-color 0.2s;
@@ -276,6 +276,7 @@
 	appearance: none;
 	min-height: auto;
 	height: auto;
+	line-height: 1;
 }
 
 .list-sidebar-add-item-btn:hover {
