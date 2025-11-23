@@ -131,6 +131,11 @@
 	padding: 8px;
 }
 
+/* 当鼠标悬停在列表项容器时显示添加按钮 */
+.list-sidebar-items:hover .list-sidebar-add-item-btn {
+	display: flex;
+}
+
 /* 分隔线样式 */
 .list-sidebar-items.show-dividers .list-sidebar-item:not(:last-child) {
 	border-bottom: 1px solid var(--background-modifier-border);
@@ -253,9 +258,9 @@
 	height: 16px;
 }
 
-/* 添加条目按钮 - 样式与普通item一致 */
+/* 添加条目按钮 - 样式与普通item一致，默认隐藏 */
 .list-sidebar-add-item-btn {
-	display: flex;
+	display: none;
 	align-items: center;
 	justify-content: center;
 	padding: 0;

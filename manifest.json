@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-list-sidebar",
 	"name": "List Sidebar",
-	"version": "1.9.0",
+	"version": "2.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "在侧边栏显示可折叠的列表，支持笔记链接和纯文本条目",
 	"author": "Your Name",
