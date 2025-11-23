@@ -3,7 +3,7 @@
 	"name": "List Sidebar",
 	"version": "2.2.0",
 	"minAppVersion": "0.15.0",
-	"description": "在侧边栏显示可折叠的列表，支持笔记链接和纯文本条目。v2.2.0新增：双向实时同步，文件和面板编辑实时同步；优化Windows路径兼容性，防止文件加载失败。",
+	"description": "Display and manage important lists in the sidebar.",
 	"author": "Your Name",
 	"authorUrl": "",
 	"fundingUrl": "",
