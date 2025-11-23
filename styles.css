@@ -264,10 +264,12 @@
 	transition: background-color 0.2s;
 	position: relative;
 	cursor: pointer;
-	background: none;
+	background-color: transparent;
 	border: none;
 	color: var(--text-muted);
 	width: 100%;
+	box-shadow: none;
+	outline: none;
 }
 
 .list-sidebar-add-item-btn:hover {
