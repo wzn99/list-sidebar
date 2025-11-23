@@ -48,6 +48,18 @@ export default class ListSidebarPlugin extends Plugin {
 		// 添加设置标签
 		this.addSettingTab(new ListSidebarSettingTab(this.app, this));
 
+		// 注册文件变更监听器 - 实现双向同步
+		this.registerEvent(
+			this.app.vault.on("modify", (file) => {
+				if (file instanceof TFile && file.path === this.settings.filePath) {
+					// 文件被外部修改，通知视图刷新
+					if (this.listView) {
+						this.listView.handleFileChanged();
+					}
+				}
+			})
+		);
+
 		// 如果侧边栏已打开，激活视图
 		this.app.workspace.onLayoutReady(() => {
 			this.activateView();
@@ -90,10 +102,10 @@ export default class ListSidebarPlugin extends Plugin {
 
 	async loadLists(): Promise<List[]> {
 		try {
-			// 规范化路径
+			// Windows路径处理：先规范化，然后尝试所有可能的路径
 			const normalizedPath = this.normalizePath(this.settings.filePath);
 			let file = this.app.vault.getAbstractFileByPath(normalizedPath);
-			
+
 			// 如果规范化路径找不到文件，尝试使用原始路径
 			if (!file || !(file instanceof TFile)) {
 				file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
@@ -101,67 +113,151 @@ export default class ListSidebarPlugin extends Plugin {
 					// 找到了文件，说明路径规范化可能有问题，更新设置中的路径
 					this.settings.filePath = file.path;
 					await this.saveSettings();
+					console.log("loadLists: 使用原始路径找到文件", this.settings.filePath);
 				}
 			}
-			
+
+			// 如果是Windows路径（包含反斜杠），额外尝试转换路径
+			if (!file && this.settings.filePath.includes('\\')) {
+				const unixStylePath = this.settings.filePath.replace(/\\/g, '/');
+				console.log("loadLists: 尝试Unix风格路径", unixStylePath);
+				file = this.app.vault.getAbstractFileByPath(unixStylePath);
+				if (file && file instanceof TFile) {
+					this.settings.filePath = file.path;
+					await this.saveSettings();
+				}
+			}
+
+			// 最后尝试：检查是否有同名文件在不同路径
+			if (!file) {
+				console.warn("loadLists: 无法在指定路径找到文件", normalizedPath);
+				console.warn("loadLists: 检查vault中是否有list-sidebar-data.md文件");
+
+				// 尝试查找vault中的数据文件
+				const allFiles = this.app.vault.getFiles();
+				const dataFiles = allFiles.filter(f =>
+					f.path.includes('list-sidebar-data') || f.path.endsWith('.md')
+				);
+
+				if (dataFiles.length > 0 && !normalizedPath.includes("/")) {
+					// 如果设置在根目录，检查根目录下的文件
+					const rootFile = dataFiles.find(f => !f.path.includes('/'));
+					if (rootFile) {
+						file = rootFile;
+						this.settings.filePath = rootFile.path;
+						await this.saveSettings();
+						new Notice(`从 "${file.path}" 加载数据`);
+					}
+				}
+			}
+
 			if (!file || !(file instanceof TFile)) {
+				console.log("loadLists: 文件不存在，返回空列表");
 				return [];
 			}
 
+			console.log("loadLists: 成功找到文件", file.path);
 			const content = await this.app.vault.read(file);
-			return this.parseMarkdownFile(content);
+			const parsedLists = this.parseMarkdownFile(content);
+			console.log("loadLists: 解析结果 - 列表数量:", parsedLists.length);
+			return parsedLists;
 		} catch (error) {
 			console.error("加载列表数据失败:", error);
-			console.error("尝试的路径:", this.normalizePath(this.settings.filePath), "原始路径:", this.settings.filePath);
+			console.error("尝试的路径:", this.settings.filePath);
+			// 返回空数组而不是抛出错误，避免影响插件启动
 			return [];
 		}
 	}
 
 	async saveLists(lists: List[]): Promise<void> {
 		try {
-			// 规范化路径
-			const normalizedPath = this.normalizePath(this.settings.filePath);
-			let file = this.app.vault.getAbstractFileByPath(normalizedPath);
-			
-			// 如果文件存在，先尝试加载文件内容，避免覆盖
-			if (file && file instanceof TFile) {
-				try {
-					const existingContent = await this.app.vault.read(file);
-					if (existingContent.trim().length > 0) {
-						const existingLists = this.parseMarkdownFile(existingContent);
-						// 如果文件有内容但传入的lists为空或很少，可能是加载失败导致的
-						// 在这种情况下，应该使用文件中的内容而不是覆盖
-						if (existingLists.length > 0 && lists.length === 0) {
-							console.warn("保存列表数据：检测到文件有内容但lists为空，跳过保存以避免覆盖数据");
-							console.warn("文件路径:", normalizedPath, "原始路径:", this.settings.filePath);
-							return;
-						}
-						// 如果文件有内容且lists也有内容，正常保存（用户可能已经修改了内容）
+			// 关键安全检查1：防止用空数据覆盖已有内容的文件
+			if (lists.length === 0 && this.settings.filePath === "list-sidebar-data.md") {
+				let normalizedPath = this.normalizePath(this.settings.filePath);
+				let existingFile = this.app.vault.getAbstractFileByPath(normalizedPath);
+
+				if (!existingFile && this.settings.filePath.includes('\\')) {
+					const unixStylePath = this.settings.filePath.replace(/\\/g, '/');
+					existingFile = this.app.vault.getAbstractFileByPath(unixStylePath);
+				}
+
+				if (existingFile && existingFile instanceof TFile) {
+					const existingContent = await this.app.vault.read(existingFile);
+					const existingLists = this.parseMarkdownFile(existingContent);
+
+					// 如果文件有内容但试图保存空数据，拒绝保存
+					if (existingLists.length > 0 && lists.length === 0) {
+						console.error("保存被拒绝：试图用空数据覆盖已存在数据的文件");
+						console.error("现有列表数量:", existingLists.length);
+						new Notice("保存失败：文件包含数据，不能覆盖为空");
+						return;
 					}
-				} catch (readError) {
-					// 读取失败，继续正常保存流程
-					console.warn("读取现有文件内容失败，继续保存:", readError);
 				}
 			}
-			
-			// 如果文件不存在，尝试用不同方式查找文件（处理路径问题）
-			if (!file) {
-				// 尝试使用原始路径（未规范化）
+
+			// 关键安全检查2：防止数据丢失（如果文件本身有多个列表，拒绝覆盖为空）
+			if (lists.length === 0) {
+				let normalizedPath = this.normalizePath(this.settings.filePath);
+				let existingFile = this.app.vault.getAbstractFileByPath(normalizedPath);
+
+				if (!existingFile && this.settings.filePath.includes('\\')) {
+					const unixStylePath = this.settings.filePath.replace(/\\/g, '/');
+					existingFile = this.app.vault.getAbstractFileByPath(unixStylePath);
+				}
+
+				if (existingFile && existingFile instanceof TFile) {
+					const existingContent = await this.app.vault.read(existingFile);
+					const existingLists = this.parseMarkdownFile(existingContent);
+
+					if (existingLists.length > 3) {
+						console.error("保存被拒绝：文件有多个列表但试图保存为空");
+						new Notice("保存失败：检测到数据丢失风险");
+						return;
+					}
+				}
+			}
+
+			// 安全检查3：生成内容后如果异常短，可能是数据问题
+			const content = this.generateMarkdownFile(lists);
+			if (content.length < 30 && lists.length > 2) {
+				console.error("保存被拒绝：生成的内容异常短但列表数量较多");
+				console.error("列表数量:", lists.length, "内容长度:", content.length);
+				new Notice("保存失败：内容生成异常");
+				return;
+			}
+
+			// 规范化路径
+			let normalizedPath = this.normalizePath(this.settings.filePath);
+			let file = this.app.vault.getAbstractFileByPath(normalizedPath);
+
+			// Windows路径兼容性：如果规范化路径找不到，尝试原始路径
+			if (!file || !(file instanceof TFile)) {
 				file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
 				if (file && file instanceof TFile) {
-					// 找到了文件，说明路径规范化可能有问题，更新设置中的路径
+					this.settings.filePath = file.path;
+					await this.saveSettings();
+					console.log("saveLists: 使用原始路径找到文件", this.settings.filePath);
+				}
+			}
+
+			// 如果是Windows路径（包含反斜杠），额外尝试转换路径
+			if (!file && this.settings.filePath.includes('\\')) {
+				const unixStylePath = this.settings.filePath.replace(/\\/g, '/');
+				console.log("saveLists: 尝试Unix风格路径", unixStylePath);
+				file = this.app.vault.getAbstractFileByPath(unixStylePath);
+				if (file && file instanceof TFile) {
 					this.settings.filePath = file.path;
 					await this.saveSettings();
 				}
 			}
-			
-			const content = this.generateMarkdownFile(lists);
-			
+
+			// 保存文件
 			if (file && file instanceof TFile) {
 				await this.app.vault.modify(file, content);
+				console.log("saveLists: 成功更新文件", file.path, "列表数量:", lists.length);
 			} else {
-				// 文件不存在，创建新文件
 				await this.app.vault.create(normalizedPath, content);
+				console.log("saveLists: 成功创建新文件", normalizedPath);
 			}
 		} catch (error) {
 			console.error("保存列表数据失败:", error);
@@ -270,14 +366,55 @@ export default class ListSidebarPlugin extends Plugin {
 		(this.app as any).setting.openTabById(this.manifest.id);
 	}
 
-	// 添加路径规范化方法
-	private normalizePath(path: string): string {
+	// 路径规范化方法（改为public以便在其他地方使用）
+	normalizePath(path: string): string {
+		if (!path) return path;
+
+		// 保留原始路径以供Windows绝对路径检测
+		const originalPath = path;
+
 		// 将反斜杠转换为正斜杠
 		path = path.replace(/\\/g, '/');
-		// 移除前导和尾随斜杠（除非是根路径）
+
+		// 处理Windows绝对路径（如 C:/Users/...）
+		if (this.isWindowsAbsolutePath(originalPath)) {
+			// 转换为相对于vault根目录的路径
+			const relativePath = this.convertWindowsPathToRelative(originalPath);
+			console.log("convertWindowsPathToRelative:", originalPath, "->", relativePath);
+			return relativePath;
+		}
+
+		// 移除前导和尾随斜杠
 		path = path.replace(/^\/+|\/+$/g, '');
+
 		// 规范化多个连续斜杠为单个斜杠
 		path = path.replace(/\/+/g, '/');
+
+		return path;
+	}
+
+	private isWindowsAbsolutePath(path: string): boolean {
+		// 检查是否为Windows绝对路径格式：如 C:\path\file.md 或 C:/path/file.md
+		return /^[a-zA-Z]:[/\\]/.test(path);
+	}
+
+	private convertWindowsPathToRelative(windowsPath: string): string {
+		let path = windowsPath.replace(/\\/g, '/');
+
+		// 移除盘符，保留后续路径
+		// C:/Users/.../vault/data.md -> Users/.../vault/data.md
+		path = path.replace(/^[a-zA-Z]:[/\\]?/, '');
+
+		// 尝试提取相对于vault的路径
+		const vaultPath = (this.app.vault.adapter as any).basePath || '';
+		if (vaultPath && path.includes(vaultPath)) {
+			const index = path.indexOf(vaultPath);
+			if (index >= 0) {
+				path = path.substring(index + vaultPath.length);
+				path = path.replace(/^[/\\]+/, '');
+			}
+		}
+
 		return path;
 	}
 }

@@ -8,6 +8,7 @@ export class ListView extends ItemView {
 	plugin: ListSidebarPlugin;
 	private lists: List[] = [];
 	private mainContainer: HTMLElement | null = null;
+	private fileChangeDebounceTimer: NodeJS.Timeout | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ListSidebarPlugin) {
 		super(leaf);
@@ -618,6 +619,38 @@ export class ListView extends ItemView {
 			await this.saveData();
 			this.render();
 		};
+	}
+
+	/**
+	 * 处理文件变更事件，使用防抖避免高频刷新
+	 */
+	async handleFileChanged() {
+		// 清除现有定时器
+		if (this.fileChangeDebounceTimer) {
+			clearTimeout(this.fileChangeDebounceTimer);
+		}
+
+		// 设置防抖：等待200ms内无新变更再刷新
+		this.fileChangeDebounceTimer = setTimeout(async () => {
+			// 检查当前是否有输入控件（避免中断用户输入）
+			const hasActiveInput = this.containerEl.querySelector(".list-sidebar-inline-input");
+			if (hasActiveInput) {
+				console.log("用户正在输入，跳过这次文件刷新");
+				return;
+			}
+
+			// 从文件重新加载数据并刷新UI
+			const prevListCount = this.lists.length;
+			await this.loadData();
+			const newListCount = this.lists.length;
+
+			// 如果检测到文件有内容但加载后为空，可能是路径问题
+			if (prevListCount > 0 && newListCount === 0) {
+				console.warn("文件加载后数据为空，检查文件路径和读取逻辑");
+			}
+
+			this.render();
+		}, 200);
 	}
 
 	async refresh() {

@@ -38,6 +38,7 @@ var ListView = class extends import_obsidian.ItemView {
     super(leaf);
     this.lists = [];
     this.mainContainer = null;
+    this.fileChangeDebounceTimer = null;
     this.plugin = plugin;
   }
   getViewType() {
@@ -518,6 +519,28 @@ var ListView = class extends import_obsidian.ItemView {
       this.render();
     };
   }
+  /**
+   * 处理文件变更事件，使用防抖避免高频刷新
+   */
+  async handleFileChanged() {
+    if (this.fileChangeDebounceTimer) {
+      clearTimeout(this.fileChangeDebounceTimer);
+    }
+    this.fileChangeDebounceTimer = setTimeout(async () => {
+      const hasActiveInput = this.containerEl.querySelector(".list-sidebar-inline-input");
+      if (hasActiveInput) {
+        console.log("\u7528\u6237\u6B63\u5728\u8F93\u5165\uFF0C\u8DF3\u8FC7\u8FD9\u6B21\u6587\u4EF6\u5237\u65B0");
+        return;
+      }
+      const prevListCount = this.lists.length;
+      await this.loadData();
+      const newListCount = this.lists.length;
+      if (prevListCount > 0 && newListCount === 0) {
+        console.warn("\u6587\u4EF6\u52A0\u8F7D\u540E\u6570\u636E\u4E3A\u7A7A\uFF0C\u68C0\u67E5\u6587\u4EF6\u8DEF\u5F84\u548C\u8BFB\u53D6\u903B\u8F91");
+      }
+      this.render();
+    }, 200);
+  }
   async refresh() {
     await this.loadData();
     this.render();
@@ -816,6 +839,15 @@ var ListSidebarPlugin = class extends import_obsidian2.Plugin {
       }
     });
     this.addSettingTab(new ListSidebarSettingTab(this.app, this));
+    this.registerEvent(
+      this.app.vault.on("modify", (file) => {
+        if (file instanceof import_obsidian2.TFile && file.path === this.settings.filePath) {
+          if (this.listView) {
+            this.listView.handleFileChanged();
+          }
+        }
+      })
+    );
     this.app.workspace.onLayoutReady(() => {
       this.activateView();
     });
@@ -825,6 +857,9 @@ var ListSidebarPlugin = class extends import_obsidian2.Plugin {
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    if (this.settings.filePath) {
+      this.settings.filePath = this.normalizePath(this.settings.filePath);
+    }
   }
   async saveSettings() {
     await this.saveData(this.settings);
@@ -845,39 +880,126 @@ var ListSidebarPlugin = class extends import_obsidian2.Plugin {
   }
   async loadLists() {
     try {
-      const file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
+      const normalizedPath = this.normalizePath(this.settings.filePath);
+      let file = this.app.vault.getAbstractFileByPath(normalizedPath);
       if (!file || !(file instanceof import_obsidian2.TFile)) {
+        file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
+        if (file && file instanceof import_obsidian2.TFile) {
+          this.settings.filePath = file.path;
+          await this.saveSettings();
+          console.log("loadLists: \u4F7F\u7528\u539F\u59CB\u8DEF\u5F84\u627E\u5230\u6587\u4EF6", this.settings.filePath);
+        }
+      }
+      if (!file && this.settings.filePath.includes("\\")) {
+        const unixStylePath = this.settings.filePath.replace(/\\/g, "/");
+        console.log("loadLists: \u5C1D\u8BD5Unix\u98CE\u683C\u8DEF\u5F84", unixStylePath);
+        file = this.app.vault.getAbstractFileByPath(unixStylePath);
+        if (file && file instanceof import_obsidian2.TFile) {
+          this.settings.filePath = file.path;
+          await this.saveSettings();
+        }
+      }
+      if (!file) {
+        console.warn("loadLists: \u65E0\u6CD5\u5728\u6307\u5B9A\u8DEF\u5F84\u627E\u5230\u6587\u4EF6", normalizedPath);
+        console.warn("loadLists: \u68C0\u67E5vault\u4E2D\u662F\u5426\u6709list-sidebar-data.md\u6587\u4EF6");
+        const allFiles = this.app.vault.getFiles();
+        const dataFiles = allFiles.filter(
+          (f) => f.path.includes("list-sidebar-data") || f.path.endsWith(".md")
+        );
+        if (dataFiles.length > 0 && !normalizedPath.includes("/")) {
+          const rootFile = dataFiles.find((f) => !f.path.includes("/"));
+          if (rootFile) {
+            file = rootFile;
+            this.settings.filePath = rootFile.path;
+            await this.saveSettings();
+            new import_obsidian2.Notice(`\u4ECE "${file.path}" \u52A0\u8F7D\u6570\u636E`);
+          }
+        }
+      }
+      if (!file || !(file instanceof import_obsidian2.TFile)) {
+        console.log("loadLists: \u6587\u4EF6\u4E0D\u5B58\u5728\uFF0C\u8FD4\u56DE\u7A7A\u5217\u8868");
         return [];
       }
+      console.log("loadLists: \u6210\u529F\u627E\u5230\u6587\u4EF6", file.path);
       const content = await this.app.vault.read(file);
-      return this.parseMarkdownFile(content);
+      const parsedLists = this.parseMarkdownFile(content);
+      console.log("loadLists: \u89E3\u6790\u7ED3\u679C - \u5217\u8868\u6570\u91CF:", parsedLists.length);
+      return parsedLists;
     } catch (error) {
       console.error("\u52A0\u8F7D\u5217\u8868\u6570\u636E\u5931\u8D25:", error);
+      console.error("\u5C1D\u8BD5\u7684\u8DEF\u5F84:", this.settings.filePath);
       return [];
     }
   }
   async saveLists(lists) {
     try {
-      const file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
-      if (lists.length === 0 && file && file instanceof import_obsidian2.TFile) {
-        try {
-          const existingContent = await this.app.vault.read(file);
-          if (existingContent.trim().length > 0) {
-            const existingLists = this.parseMarkdownFile(existingContent);
-            if (existingLists.length > 0) {
-              console.warn("\u4FDD\u5B58\u5217\u8868\u6570\u636E\uFF1A\u68C0\u6D4B\u5230\u6587\u4EF6\u6709\u5185\u5BB9\u4F46lists\u4E3A\u7A7A\uFF0C\u8DF3\u8FC7\u4FDD\u5B58\u4EE5\u907F\u514D\u8986\u76D6\u6570\u636E");
-              return;
-            }
+      if (lists.length === 0 && this.settings.filePath === "list-sidebar-data.md") {
+        let normalizedPath2 = this.normalizePath(this.settings.filePath);
+        let existingFile = this.app.vault.getAbstractFileByPath(normalizedPath2);
+        if (!existingFile && this.settings.filePath.includes("\\")) {
+          const unixStylePath = this.settings.filePath.replace(/\\/g, "/");
+          existingFile = this.app.vault.getAbstractFileByPath(unixStylePath);
+        }
+        if (existingFile && existingFile instanceof import_obsidian2.TFile) {
+          const existingContent = await this.app.vault.read(existingFile);
+          const existingLists = this.parseMarkdownFile(existingContent);
+          if (existingLists.length > 0 && lists.length === 0) {
+            console.error("\u4FDD\u5B58\u88AB\u62D2\u7EDD\uFF1A\u8BD5\u56FE\u7528\u7A7A\u6570\u636E\u8986\u76D6\u5DF2\u5B58\u5728\u6570\u636E\u7684\u6587\u4EF6");
+            console.error("\u73B0\u6709\u5217\u8868\u6570\u91CF:", existingLists.length);
+            new import_obsidian2.Notice("\u4FDD\u5B58\u5931\u8D25\uFF1A\u6587\u4EF6\u5305\u542B\u6570\u636E\uFF0C\u4E0D\u80FD\u8986\u76D6\u4E3A\u7A7A");
+            return;
           }
-        } catch (readError) {
-          console.warn("\u8BFB\u53D6\u73B0\u6709\u6587\u4EF6\u5185\u5BB9\u5931\u8D25\uFF0C\u7EE7\u7EED\u4FDD\u5B58:", readError);
+        }
+      }
+      if (lists.length === 0) {
+        let normalizedPath2 = this.normalizePath(this.settings.filePath);
+        let existingFile = this.app.vault.getAbstractFileByPath(normalizedPath2);
+        if (!existingFile && this.settings.filePath.includes("\\")) {
+          const unixStylePath = this.settings.filePath.replace(/\\/g, "/");
+          existingFile = this.app.vault.getAbstractFileByPath(unixStylePath);
+        }
+        if (existingFile && existingFile instanceof import_obsidian2.TFile) {
+          const existingContent = await this.app.vault.read(existingFile);
+          const existingLists = this.parseMarkdownFile(existingContent);
+          if (existingLists.length > 3) {
+            console.error("\u4FDD\u5B58\u88AB\u62D2\u7EDD\uFF1A\u6587\u4EF6\u6709\u591A\u4E2A\u5217\u8868\u4F46\u8BD5\u56FE\u4FDD\u5B58\u4E3A\u7A7A");
+            new import_obsidian2.Notice("\u4FDD\u5B58\u5931\u8D25\uFF1A\u68C0\u6D4B\u5230\u6570\u636E\u4E22\u5931\u98CE\u9669");
+            return;
+          }
         }
       }
       const content = this.generateMarkdownFile(lists);
+      if (content.length < 30 && lists.length > 2) {
+        console.error("\u4FDD\u5B58\u88AB\u62D2\u7EDD\uFF1A\u751F\u6210\u7684\u5185\u5BB9\u5F02\u5E38\u77ED\u4F46\u5217\u8868\u6570\u91CF\u8F83\u591A");
+        console.error("\u5217\u8868\u6570\u91CF:", lists.length, "\u5185\u5BB9\u957F\u5EA6:", content.length);
+        new import_obsidian2.Notice("\u4FDD\u5B58\u5931\u8D25\uFF1A\u5185\u5BB9\u751F\u6210\u5F02\u5E38");
+        return;
+      }
+      let normalizedPath = this.normalizePath(this.settings.filePath);
+      let file = this.app.vault.getAbstractFileByPath(normalizedPath);
+      if (!file || !(file instanceof import_obsidian2.TFile)) {
+        file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
+        if (file && file instanceof import_obsidian2.TFile) {
+          this.settings.filePath = file.path;
+          await this.saveSettings();
+          console.log("saveLists: \u4F7F\u7528\u539F\u59CB\u8DEF\u5F84\u627E\u5230\u6587\u4EF6", this.settings.filePath);
+        }
+      }
+      if (!file && this.settings.filePath.includes("\\")) {
+        const unixStylePath = this.settings.filePath.replace(/\\/g, "/");
+        console.log("saveLists: \u5C1D\u8BD5Unix\u98CE\u683C\u8DEF\u5F84", unixStylePath);
+        file = this.app.vault.getAbstractFileByPath(unixStylePath);
+        if (file && file instanceof import_obsidian2.TFile) {
+          this.settings.filePath = file.path;
+          await this.saveSettings();
+        }
+      }
       if (file && file instanceof import_obsidian2.TFile) {
         await this.app.vault.modify(file, content);
+        console.log("saveLists: \u6210\u529F\u66F4\u65B0\u6587\u4EF6", file.path, "\u5217\u8868\u6570\u91CF:", lists.length);
       } else {
-        await this.app.vault.create(this.settings.filePath, content);
+        await this.app.vault.create(normalizedPath, content);
+        console.log("saveLists: \u6210\u529F\u521B\u5EFA\u65B0\u6587\u4EF6", normalizedPath);
       }
     } catch (error) {
       console.error("\u4FDD\u5B58\u5217\u8868\u6570\u636E\u5931\u8D25:", error);
@@ -969,6 +1091,37 @@ var ListSidebarPlugin = class extends import_obsidian2.Plugin {
     this.app.setting.open();
     this.app.setting.openTabById(this.manifest.id);
   }
+  // 路径规范化方法（改为public以便在其他地方使用）
+  normalizePath(path) {
+    if (!path)
+      return path;
+    const originalPath = path;
+    path = path.replace(/\\/g, "/");
+    if (this.isWindowsAbsolutePath(originalPath)) {
+      const relativePath = this.convertWindowsPathToRelative(originalPath);
+      console.log("convertWindowsPathToRelative:", originalPath, "->", relativePath);
+      return relativePath;
+    }
+    path = path.replace(/^\/+|\/+$/g, "");
+    path = path.replace(/\/+/g, "/");
+    return path;
+  }
+  isWindowsAbsolutePath(path) {
+    return /^[a-zA-Z]:[/\\]/.test(path);
+  }
+  convertWindowsPathToRelative(windowsPath) {
+    let path = windowsPath.replace(/\\/g, "/");
+    path = path.replace(/^[a-zA-Z]:[/\\]?/, "");
+    const vaultPath = this.app.vault.adapter.basePath || "";
+    if (vaultPath && path.includes(vaultPath)) {
+      const index = path.indexOf(vaultPath);
+      if (index >= 0) {
+        path = path.substring(index + vaultPath.length);
+        path = path.replace(/^[/\\]+/, "");
+      }
+    }
+    return path;
+  }
 };
 var ListSidebarSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
@@ -980,7 +1133,7 @@ var ListSidebarSettingTab = class extends import_obsidian2.PluginSettingTab {
     containerEl.empty();
     containerEl.createEl("h2", { text: "List Sidebar Settings" });
     new import_obsidian2.Setting(containerEl).setName("Data File Path").setDesc("Markdown file path to save list data (relative to vault root)").addText((text) => text.setPlaceholder("e.g., list-sidebar-data.md").setValue(this.plugin.settings.filePath).onChange(async (value) => {
-      this.plugin.settings.filePath = value;
+      this.plugin.settings.filePath = this.plugin.normalizePath(value);
       await this.plugin.saveSettings();
       const listView = this.plugin.listView;
       if (listView) {
