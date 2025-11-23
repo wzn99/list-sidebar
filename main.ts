@@ -92,7 +92,18 @@ export default class ListSidebarPlugin extends Plugin {
 		try {
 			// 规范化路径
 			const normalizedPath = this.normalizePath(this.settings.filePath);
-			const file = this.app.vault.getAbstractFileByPath(normalizedPath);
+			let file = this.app.vault.getAbstractFileByPath(normalizedPath);
+			
+			// 如果规范化路径找不到文件，尝试使用原始路径
+			if (!file || !(file instanceof TFile)) {
+				file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
+				if (file && file instanceof TFile) {
+					// 找到了文件，说明路径规范化可能有问题，更新设置中的路径
+					this.settings.filePath = file.path;
+					await this.saveSettings();
+				}
+			}
+			
 			if (!file || !(file instanceof TFile)) {
 				return [];
 			}
@@ -101,6 +112,7 @@ export default class ListSidebarPlugin extends Plugin {
 			return this.parseMarkdownFile(content);
 		} catch (error) {
 			console.error("加载列表数据失败:", error);
+			console.error("尝试的路径:", this.normalizePath(this.settings.filePath), "原始路径:", this.settings.filePath);
 			return [];
 		}
 	}
@@ -109,26 +121,37 @@ export default class ListSidebarPlugin extends Plugin {
 		try {
 			// 规范化路径
 			const normalizedPath = this.normalizePath(this.settings.filePath);
-			const file = this.app.vault.getAbstractFileByPath(normalizedPath);
+			let file = this.app.vault.getAbstractFileByPath(normalizedPath);
 			
-			// 如果lists为空且文件已存在，先检查文件是否有内容
-			// 避免用空内容覆盖已有数据的文件
-			if (lists.length === 0 && file && file instanceof TFile) {
+			// 如果文件存在，先尝试加载文件内容，避免覆盖
+			if (file && file instanceof TFile) {
 				try {
 					const existingContent = await this.app.vault.read(file);
-					// 如果文件有内容（去除空白后不为空），说明可能是加载失败
-					// 不应该用空内容覆盖，应该先尝试重新加载
 					if (existingContent.trim().length > 0) {
 						const existingLists = this.parseMarkdownFile(existingContent);
-						// 如果能够解析出内容，说明文件有数据，不应该覆盖
-						if (existingLists.length > 0) {
+						// 如果文件有内容但传入的lists为空或很少，可能是加载失败导致的
+						// 在这种情况下，应该使用文件中的内容而不是覆盖
+						if (existingLists.length > 0 && lists.length === 0) {
 							console.warn("保存列表数据：检测到文件有内容但lists为空，跳过保存以避免覆盖数据");
+							console.warn("文件路径:", normalizedPath, "原始路径:", this.settings.filePath);
 							return;
 						}
+						// 如果文件有内容且lists也有内容，正常保存（用户可能已经修改了内容）
 					}
 				} catch (readError) {
 					// 读取失败，继续正常保存流程
 					console.warn("读取现有文件内容失败，继续保存:", readError);
+				}
+			}
+			
+			// 如果文件不存在，尝试用不同方式查找文件（处理路径问题）
+			if (!file) {
+				// 尝试使用原始路径（未规范化）
+				file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
+				if (file && file instanceof TFile) {
+					// 找到了文件，说明路径规范化可能有问题，更新设置中的路径
+					this.settings.filePath = file.path;
+					await this.saveSettings();
 				}
 			}
 			
