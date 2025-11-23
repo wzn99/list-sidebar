@@ -142,6 +142,17 @@
 	max-height: 14px !important;
 }
 
+/* 当有输入框时，隐藏添加按钮 */
+.list-sidebar-items:has(.list-sidebar-inline-input) .list-sidebar-add-item-btn {
+	display: none !important;
+	visibility: hidden !important;
+	opacity: 0 !important;
+	pointer-events: none !important;
+	height: 0 !important;
+	min-height: 0 !important;
+	max-height: 0 !important;
+}
+
 /* 分隔线样式 */
 .list-sidebar-items.show-dividers .list-sidebar-item:not(:last-child) {
 	border-bottom: 1px solid var(--background-modifier-border);
