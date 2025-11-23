@@ -59,7 +59,7 @@
 	display: flex;
 	align-items: center;
 	padding: 10px;
-	background-color: var(--background-modifier-form-field-highlighted);
+	background-color: var(--background-modifier-border);
 	border-bottom: 1px solid var(--background-modifier-border);
 	cursor: pointer;
 	user-select: none;
@@ -228,9 +228,8 @@
 	height: 14px;
 }
 
-/* 添加按钮 */
-.list-sidebar-add-list-btn,
-.list-sidebar-add-item-btn {
+/* 添加列表按钮 */
+.list-sidebar-add-list-btn {
 	width: 100%;
 	padding: 8px;
 	margin-top: 8px;
@@ -245,15 +244,40 @@
 	justify-content: center;
 }
 
-.list-sidebar-add-list-btn:hover,
-.list-sidebar-add-item-btn:hover {
+.list-sidebar-add-list-btn:hover {
 	background-color: var(--interactive-hover);
 }
 
-.list-sidebar-add-list-btn svg,
-.list-sidebar-add-item-btn svg {
+.list-sidebar-add-list-btn svg {
 	width: 16px;
 	height: 16px;
+}
+
+/* 添加条目按钮 - 样式与普通item一致 */
+.list-sidebar-add-item-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px;
+	margin-bottom: 4px;
+	border-radius: 4px;
+	transition: background-color 0.2s;
+	position: relative;
+	cursor: pointer;
+	background: none;
+	border: none;
+	color: var(--text-muted);
+	width: 100%;
+}
+
+.list-sidebar-add-item-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.list-sidebar-add-item-btn svg {
+	width: 14px;
+	height: 14px;
 }
 
 /* 模态框按钮容器 */
