@@ -60,6 +60,10 @@ export default class ListSidebarPlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		// 规范化路径，确保使用正斜杠
+		if (this.settings.filePath) {
+			this.settings.filePath = this.normalizePath(this.settings.filePath);
+		}
 	}
 
 	async saveSettings() {
@@ -86,7 +90,9 @@ export default class ListSidebarPlugin extends Plugin {
 
 	async loadLists(): Promise<List[]> {
 		try {
-			const file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
+			// 规范化路径
+			const normalizedPath = this.normalizePath(this.settings.filePath);
+			const file = this.app.vault.getAbstractFileByPath(normalizedPath);
 			if (!file || !(file instanceof TFile)) {
 				return [];
 			}
@@ -101,7 +107,9 @@ export default class ListSidebarPlugin extends Plugin {
 
 	async saveLists(lists: List[]): Promise<void> {
 		try {
-			const file = this.app.vault.getAbstractFileByPath(this.settings.filePath);
+			// 规范化路径
+			const normalizedPath = this.normalizePath(this.settings.filePath);
+			const file = this.app.vault.getAbstractFileByPath(normalizedPath);
 			
 			// 如果lists为空且文件已存在，先检查文件是否有内容
 			// 避免用空内容覆盖已有数据的文件
@@ -130,7 +138,7 @@ export default class ListSidebarPlugin extends Plugin {
 				await this.app.vault.modify(file, content);
 			} else {
 				// 文件不存在，创建新文件
-				await this.app.vault.create(this.settings.filePath, content);
+				await this.app.vault.create(normalizedPath, content);
 			}
 		} catch (error) {
 			console.error("保存列表数据失败:", error);
@@ -238,6 +246,17 @@ export default class ListSidebarPlugin extends Plugin {
 		(this.app as any).setting.open();
 		(this.app as any).setting.openTabById(this.manifest.id);
 	}
+
+	// 添加路径规范化方法
+	private normalizePath(path: string): string {
+		// 将反斜杠转换为正斜杠
+		path = path.replace(/\\/g, '/');
+		// 移除前导和尾随斜杠（除非是根路径）
+		path = path.replace(/^\/+|\/+$/g, '');
+		// 规范化多个连续斜杠为单个斜杠
+		path = path.replace(/\/+/g, '/');
+		return path;
+	}
 }
 
 class ListSidebarSettingTab extends PluginSettingTab {
@@ -262,7 +281,8 @@ class ListSidebarSettingTab extends PluginSettingTab {
 				.setPlaceholder("e.g., list-sidebar-data.md")
 				.setValue(this.plugin.settings.filePath)
 				.onChange(async (value) => {
-					this.plugin.settings.filePath = value;
+					// 规范化路径后再保存
+					this.plugin.settings.filePath = this.plugin.normalizePath(value);
 					await this.plugin.saveSettings();
 					const listView = (this.plugin as any).listView;
 					if (listView) {
