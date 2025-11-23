@@ -709,6 +709,13 @@ export class ListView extends ItemView {
 	}
 
 	showAddItemInput(container: HTMLElement, listIndex: number) {
+		// 隐藏添加按钮
+		const addBtn = container.querySelector(".list-sidebar-add-item-btn") as HTMLElement;
+		if (addBtn) {
+			addBtn.style.display = "none";
+			addBtn.style.visibility = "hidden";
+		}
+		
 		const textareaEl = container.createEl("textarea", {
 			cls: "list-sidebar-inline-input"
 		});
@@ -735,6 +742,11 @@ export class ListView extends ItemView {
 				this.render();
 			} else {
 				textareaEl.remove();
+				// 恢复添加按钮的显示（通过悬停）
+				if (addBtn) {
+					addBtn.style.display = "";
+					addBtn.style.visibility = "";
+				}
 			}
 		};
 
@@ -754,6 +766,11 @@ export class ListView extends ItemView {
 			} else if (e.key === "Escape") {
 				e.preventDefault();
 				textareaEl.remove();
+				// 恢复添加按钮的显示（通过悬停）
+				if (addBtn) {
+					addBtn.style.display = "";
+					addBtn.style.visibility = "";
+				}
 			}
 		};
 		
