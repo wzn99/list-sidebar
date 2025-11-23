@@ -131,9 +131,11 @@
 	padding: 8px;
 }
 
-/* 当鼠标悬停在列表项容器时显示添加按钮 */
+/* 当鼠标悬停在列表项容器时显示添加按钮（整行） */
 .list-sidebar-items:hover .list-sidebar-add-item-btn {
-	display: flex;
+	display: flex !important;
+	opacity: 1;
+	pointer-events: auto;
 }
 
 /* 分隔线样式 */
@@ -258,9 +260,9 @@
 	height: 16px;
 }
 
-/* 添加条目按钮 - 样式与普通item一致，默认隐藏 */
+/* 添加条目按钮 - 整行作为按钮，默认隐藏，悬停时显示 */
 .list-sidebar-add-item-btn {
-	display: none;
+	display: none !important;
 	align-items: center;
 	justify-content: center;
 	padding: 0;
@@ -287,6 +289,8 @@
 	min-height: 14px;
 	max-height: 14px;
 	line-height: 1;
+	opacity: 0;
+	pointer-events: none;
 }
 
 .list-sidebar-add-item-btn:hover {
